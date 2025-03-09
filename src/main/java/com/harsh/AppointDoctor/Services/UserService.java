@@ -4,14 +4,18 @@ import com.harsh.AppointDoctor.Models.Users;
 import com.harsh.AppointDoctor.Models.UsersProfile;
 import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserRepo;
+import com.harsh.AppointDoctor.Utility.LoginResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -31,20 +35,21 @@ public class UserService {
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     public Users register(Users user) {
-
         user.setPassword(encoder.encode(user.getPassword()));
+        if (user.getRoles() == null) {
+            user.setRoles("user");
+        }
+
         Users savedUser = repo.save(user);
 
         UsersProfile userProfile = new UsersProfile();
-        System.out.println();
-        userProfile.setFullName(savedUser.getFirstName() +" "+ savedUser.getLastName());
+        userProfile.setFullName(savedUser.getFirstName() + " " + savedUser.getLastName());
         userProfile.setEmail(savedUser.getEmail());
 
         profileRepo.save(userProfile);
-        return repo.save(user);
 
+        return savedUser;
     }
-
 
     public ResponseEntity<?> userExistence(String email) {
         Users user = repo.findByEmail(email);
@@ -64,17 +69,30 @@ public class UserService {
             return false;
         }
     }
-
-    public String verify(Users loginRequest) {
+    public LoginResponse verify(Users loginRequest) {
         Authentication authentication =
-                authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),loginRequest.getPassword()));
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                loginRequest.getEmail(), loginRequest.getPassword()
+                        )
+                );
 
-        if (authentication.isAuthenticated()){
-            return jwtService.generateToken(loginRequest.getEmail());
+        if (authentication.isAuthenticated()) {
+            String token = jwtService.generateToken(loginRequest.getEmail());
+            // Retrieve authenticated user details
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            // Extract roles as a single String
+            String roles = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.joining(","));  // Converts list to comma-separated String
+
+            return new LoginResponse("Login Successful", HttpStatus.OK.value(), token,
+                    loginRequest.getEmail(), roles,
+                    loginRequest.getFirstName()+" "+loginRequest.getLastName());
+
         }
-        return "fail";
+        return null;
     }
-
 
     public void addOtp(Users user, int otp) {
         Users usersOptional = repo.findByEmail(user.getEmail());
