@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RequestMapping("/appointment")
@@ -34,6 +35,14 @@ public class AppointmentBookingController {
     public ResponseEntity<List<AppointmentBooking>> getUserAppointments(@PathVariable String email) {
         List<AppointmentBooking> appointments = appointmentService.getAppointmentsByEmail(email);
         return new ResponseEntity<>(appointments, HttpStatus.OK);
+    }
 
+    @GetMapping("/booked-slots")
+    public ResponseEntity<List<String>> getBookedSlots(
+            @RequestParam int doctorId,
+            @RequestParam String date) {
+        List<String> bookedSlots = appointmentService.getBookedSlots(doctorId, date);
+        System.out.println(bookedSlots);
+        return ResponseEntity.ok(bookedSlots);
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -47,5 +48,10 @@ public class AppointmentBookingService {
 
     public List<AppointmentBooking> getAppointmentsByEmail(String email) {
         return appointmentRepo.findByEmail(email);
+    }
+
+    public List<String> getBookedSlots(int doctorId, String appointmentDate) {
+        List<AppointmentBooking> bookings = appointmentRepo.findByDoctorIdAndDate(doctorId, appointmentDate);
+        return bookings.stream().map(AppointmentBooking::getTime).toList();
     }
 }

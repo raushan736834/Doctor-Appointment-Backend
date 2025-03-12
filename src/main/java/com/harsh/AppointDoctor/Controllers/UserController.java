@@ -1,10 +1,8 @@
 package com.harsh.AppointDoctor.Controllers;
 
-import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Utility.ErrorResponse;
 import com.harsh.AppointDoctor.Utility.LoginResponse;
 import com.harsh.AppointDoctor.Models.Users;
-import com.harsh.AppointDoctor.Repo.UserRepo;
 import com.harsh.AppointDoctor.Services.MailService;
 import com.harsh.AppointDoctor.Services.UserService;
 import jakarta.servlet.http.Cookie;
@@ -22,6 +20,7 @@ public class UserController {
 
     @Autowired
     private UserService service;
+
 
     @Autowired
     private MailService mailService;
@@ -56,13 +55,12 @@ public class UserController {
 //        }
 //    }
 
-    @PostMapping("/auth.login.user")
+    @PostMapping("/auth/login")
     public ResponseEntity<?> authoriseUser(@RequestBody Users loginRequest) {
         try {
-            String token = service.verify(loginRequest);  // The `verify` method will either return a token or throw an exception
-            if (!token.equals("fail")) {
-                return new ResponseEntity<>(new LoginResponse("Login Successful", HttpStatus.OK.value(),
-                        token,loginRequest.getEmail()), HttpStatus.OK);
+            LoginResponse loginResponse = service.verify(loginRequest);  // Now returns an object
+            if (loginResponse != null) {
+                return new ResponseEntity<>(loginResponse, HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(new ErrorResponse("Invalid Username or Password", HttpStatus.UNAUTHORIZED.value()),
                         HttpStatus.UNAUTHORIZED);

@@ -5,13 +5,13 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.2</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<version>3.4.2</version>
+		<relativePath/> 
 	</parent>
-	<groupId>com.harsh</groupId>
-	<artifactId>AppointDoctor</artifactId>
+	<groupId>harsh.appointDoctor</groupId>
+	<artifactId>Doctor-Appointment</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>AppointDoctor</name>
+	<name>Doctor-Appointment</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
@@ -83,14 +83,12 @@
 			<version>0.12.6</version>
 			<scope>runtime</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-jackson</artifactId>
 			<version>0.12.6</version>
 			<scope>runtime</scope>
 		</dependency>
-
 	</dependencies>
 
 	<build>
