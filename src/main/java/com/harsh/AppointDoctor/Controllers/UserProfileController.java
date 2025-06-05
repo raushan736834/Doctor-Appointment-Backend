@@ -13,20 +13,20 @@ import org.springframework.web.bind.annotation.*;
 public class UserProfileController {
 
     @Autowired
-    private UserProfileService profileService;
+    private UserProfileService userProfileService;
 
     @PutMapping("update")
     public ResponseEntity<?> updateProfile(@RequestBody UsersProfile profile) {
         try {
             // Check if the user exists before updating the profile
-            ResponseEntity<?> emailValidationResponse = profileService.userExistence(profile.getEmail());
+            ResponseEntity<?> emailValidationResponse = userProfileService.userExistence(profile.getEmail());
 
             if (emailValidationResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
                 return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
             }
 
             // Call service method to update the profile
-            return profileService.updateUserProfile(profile);
+            return userProfileService.updateUserProfile(profile);
         } catch (Exception e) {
             return new ResponseEntity<>("Error updating profile: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -34,7 +34,7 @@ public class UserProfileController {
 
     @GetMapping("/{email}")
     public ResponseEntity<?> getUser(@PathVariable String email){
-        return profileService.getUserById(email);
+        return userProfileService.getUserById(email);
     }
 }
 

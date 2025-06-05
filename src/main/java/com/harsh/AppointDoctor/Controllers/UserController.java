@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import static com.harsh.AppointDoctor.Utility.OtpGenerator.generateSixDigitOtp;
@@ -25,15 +26,13 @@ public class UserController {
     @Autowired
     private MailService mailService;
 
-    @PostMapping("/auth.signup.user")
+    @PostMapping("/auth/signup")
     public ResponseEntity<?> register(@RequestBody Users user) {
         try {
-            // Check if the email already exists
             ResponseEntity<?> emailValidationResponse = service.userExistence(user.getEmail());
             if (emailValidationResponse.getStatusCode() == HttpStatus.OK) {
                 return new ResponseEntity<>("Email already in use", HttpStatus.CONFLICT);
             }
-
             // Add the user
             Users newUser = service.register(user);
             mailService.sendSimpleEmail(user.getEmail(), "Welcome to Appoint Doctor",
@@ -44,51 +43,46 @@ public class UserController {
         }
     }
 
-//    @PostMapping("/auth.login.user")
-//    public ResponseEntity<?> authoriseUser(@RequestBody Users loginRequest){
-//        boolean emailAuthorisationResponse = service.authenticateUser(loginRequest);
-//        if (emailAuthorisationResponse){
-//            return new ResponseEntity<>("Login Successful",HttpStatus.OK);
-//        }
-//        else {
-//            return new ResponseEntity<>("Invalid Username or Password",HttpStatus.NOT_FOUND);
-//        }
-//    }
-
-    @PostMapping("/auth/login")
-    public ResponseEntity<?> authoriseUser(@RequestBody Users loginRequest) {
-        try {
-            LoginResponse loginResponse = service.verify(loginRequest);  // Now returns an object
-            if (loginResponse != null) {
-                return new ResponseEntity<>(loginResponse, HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(new ErrorResponse("Invalid Username or Password", HttpStatus.UNAUTHORIZED.value()),
-                        HttpStatus.UNAUTHORIZED);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(new ErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-//    @PostMapping("/auth.login.user")
+//    @PostMapping("/auth/login")
 //    public ResponseEntity<?> authoriseUser(@RequestBody Users loginRequest) {
 //        try {
-//            String token = service.verify(loginRequest);  // The `verify` method will either return a token or throw an exception
-//            ResponseCookie jwtCookie = ResponseCookie.from("token", token)
-//                    .httpOnly(true)
-//                    .secure(false)
-//                    .path("/")
-//                    .maxAge(24 * 60 * 60)
-//                    .sameSite("Strict")
-//                    .build();
-//            return ResponseEntity.ok()
-//                    .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
-//                    .body("Login Successful");
+//            LoginResponse loginResponse = service.verify(loginRequest);// Now returns an object
+//            System.out.println(loginResponse);
+//            if (loginResponse != null) {
+//                return new ResponseEntity<>(loginResponse, HttpStatus.OK);
+//            } else {
+//                return new ResponseEntity<>(new ErrorResponse("Invalid Username or Password", HttpStatus.UNAUTHORIZED.value()),
+//                        HttpStatus.UNAUTHORIZED);
+//            }
 //        } catch (Exception e) {
-//            return new ResponseEntity<>(new ErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()), HttpStatus.INTERNAL_SERVER_ERROR);
+//            return new ResponseEntity<>(new ErrorResponse("Login Failed", HttpStatus.INTERNAL_SERVER_ERROR.value()),
+//                    HttpStatus.INTERNAL_SERVER_ERROR);
 //        }
 //    }
+@PostMapping("/auth/login")
+public ResponseEntity<?> authoriseUser(@RequestBody Users loginRequest) {
+    try {
+        // Check if email or password is missing (simple client-side validation fallback)
+        if (loginRequest.getEmail() == null || loginRequest.getEmail().isEmpty() ||
+                loginRequest.getPassword() == null || loginRequest.getPassword().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Missing email or password", HttpStatus.BAD_REQUEST.value()));
+        }
+        ResponseEntity<?> loginResponse = service.verify(loginRequest);
+        if (loginResponse != null && loginResponse.getStatusCode() == HttpStatus.OK) {
+            return ResponseEntity.ok(loginResponse);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse("Invalid username or password", HttpStatus.UNAUTHORIZED.value()));
+        }
+    } catch (AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("Authentication failed", HttpStatus.UNAUTHORIZED.value()));
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Login failed due to server error", HttpStatus.INTERNAL_SERVER_ERROR.value()));
+    }
+}
 
     @PostMapping("/forget")
     public ResponseEntity<?> forgetPassword(@RequestBody Users user){
@@ -104,6 +98,10 @@ public class UserController {
         }
     }
 
+    @GetMapping("/hello")
+    public String hello(){
+        return "Hello";
+    }
     @PostMapping("/forget/verify")
     public ResponseEntity<?> validateOTP(@RequestBody Users user){
         return service.validateOtp(user);

@@ -18,7 +18,7 @@ public class AppointmentBookingController {
     @Autowired
     AppointmentBookingService appointmentService;
 
-    @PostMapping("/book")
+    @PostMapping("/book-appointment")
     public ResponseEntity<?> bookAppointment(@RequestBody AppointmentBooking booking) {
         try {
             AppointmentBooking savedBooking = appointmentService.bookAppointment(booking);
@@ -31,18 +31,34 @@ public class AppointmentBookingController {
         }
     }
 
-    @GetMapping("/get/{email}")
+
+    @GetMapping("/allBooking/{email}")
     public ResponseEntity<List<AppointmentBooking>> getUserAppointments(@PathVariable String email) {
         List<AppointmentBooking> appointments = appointmentService.getAppointmentsByEmail(email);
         return new ResponseEntity<>(appointments, HttpStatus.OK);
     }
 
-    @GetMapping("/booked-slots")
-    public ResponseEntity<List<String>> getBookedSlots(
-            @RequestParam int doctorId,
-            @RequestParam String date) {
-        List<String> bookedSlots = appointmentService.getBookedSlots(doctorId, date);
-        System.out.println(bookedSlots);
+
+    @GetMapping("/booking/{email}")
+    public ResponseEntity<List<AppointmentBooking>> getActiveOrFutureAppointments(@PathVariable String email) {
+        List<AppointmentBooking> appointments = appointmentService.getActiveOrFutureAppointments(email);
+        return new ResponseEntity<>(appointments, HttpStatus.OK);
+    }
+
+
+    @PostMapping("/booked-slots")
+    public ResponseEntity<List<String>> getBookedSlots(@RequestBody AppointmentBooking booking) {
+        System.out.println(booking);
+        List<String> bookedSlots = appointmentService.getBookedSlots(booking.getDoctor().getId(),
+                booking.getDate());
         return ResponseEntity.ok(bookedSlots);
     }
+
+    @PutMapping("/cancel-appointment")
+    public ResponseEntity<?> cancelAppointment(@RequestBody AppointmentBooking booking){
+        System.out.println(booking);
+        return appointmentService.cancelAppointment(booking);
+    }
+
+
 }

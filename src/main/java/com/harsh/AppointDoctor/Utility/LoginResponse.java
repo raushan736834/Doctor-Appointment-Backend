@@ -2,9 +2,6 @@ package com.harsh.AppointDoctor.Utility;
 
 import lombok.*;
 
-import java.util.List;
-
-
 @Data
 @NoArgsConstructor
 public class LoginResponse {

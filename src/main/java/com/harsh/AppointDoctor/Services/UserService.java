@@ -4,6 +4,7 @@ import com.harsh.AppointDoctor.Models.Users;
 import com.harsh.AppointDoctor.Models.UsersProfile;
 import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserRepo;
+import com.harsh.AppointDoctor.Utility.ErrorResponse;
 import com.harsh.AppointDoctor.Utility.LoginResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,8 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.stream.Collectors;
@@ -60,36 +63,66 @@ public class UserService {
         }
     }
 
-    public boolean authenticateUser(Users loginRequest) {
-        Users user = repo.findByEmail(loginRequest.getEmail());
-        if (user != null) {
-            // Compare raw password with the encoded password stored in the database
-            return encoder.matches(loginRequest.getPassword(), user.getPassword());
-        } else {
-            return false;
-        }
-    }
-    public LoginResponse verify(Users loginRequest) {
-        Authentication authentication =
-                authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                loginRequest.getEmail(), loginRequest.getPassword()
-                        )
-                );
+//    public ResponseEntity<?> verify(Users loginRequest) {
+//        Authentication authentication =
+//                authenticationManager.authenticate(
+//                        new UsernamePasswordAuthenticationToken(
+//                                loginRequest.getEmail(), loginRequest.getPassword()
+//                        )
+//                );
+//
+//        if (authentication.isAuthenticated()) {
+//            String token = jwtService.generateToken(loginRequest.getEmail());
+//            // Retrieve authenticated user details
+//            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+//            // Extract roles as a single String
+//            String roles = userDetails.getAuthorities().stream()
+//                    .map(GrantedAuthority::getAuthority)
+//                    .collect(Collectors.joining(","));  // Converts list to comma-separated String
+//
+//            return new ResponseEntity<>(new LoginResponse("Login Successful", HttpStatus.OK.value(), token,
+//                    loginRequest.getEmail(), roles,
+//                    loginRequest.getFirstName()+" "+ loginRequest.getLastName()),HttpStatus.B);
+//
+//        }
+//        return null;
+//    }
 
-        if (authentication.isAuthenticated()) {
-            String token = jwtService.generateToken(loginRequest.getEmail());
-            // Retrieve authenticated user details
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            // Extract roles as a single String
-            String roles = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.joining(","));  // Converts list to comma-separated String
+    public ResponseEntity<?> verify(Users loginRequest) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()
+                    )
+            );
 
-            return new LoginResponse("Login Successful", HttpStatus.OK.value(), token,
-                    loginRequest.getEmail(), roles,
-                    loginRequest.getFirstName()+" "+loginRequest.getLastName());
+            if (authentication.isAuthenticated()) {
+                UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
+                // Generate token
+                String token = jwtService.generateToken(userDetails.getUsername());
+
+                // Extract roles
+                String roles = userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.joining(","));
+
+                // Fetch full name from DB using email
+                Users userFromDB = repo.findByEmail(loginRequest.getEmail());
+                if(userFromDB == null){
+                    return new ResponseEntity<>("Authentication Failed",HttpStatus.UNAUTHORIZED);
+                }
+
+                String fullName = userFromDB.getFirstName() + " " + userFromDB.getLastName();
+
+                return new ResponseEntity<>(new LoginResponse("Login Successful", HttpStatus.OK.value(), token,
+                        loginRequest.getEmail(), roles, fullName),HttpStatus.OK);
+            }
+        } catch (AuthenticationException ex) {
+            throw ex;
+        } catch (Exception e) {
+            throw new RuntimeException("Internal error during login", e);
         }
         return null;
     }

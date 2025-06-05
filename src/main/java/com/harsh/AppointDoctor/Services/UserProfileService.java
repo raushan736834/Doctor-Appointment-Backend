@@ -31,9 +31,7 @@ public class UserProfileService {
     public ResponseEntity<?> updateUserProfile(UsersProfile profile) {
         System.out.println(profile);
         UsersProfile existingProfile = userProfileRepo.findByEmail(profile.getEmail());
-
         System.out.println("fullname "+profile.getFullName());
-
         if (existingProfile != null) {
             existingProfile.setFullName(profile.getFullName());
             existingProfile.setPhone(profile.getPhone());
