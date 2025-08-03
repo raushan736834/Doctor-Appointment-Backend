@@ -1,24 +1,36 @@
 package com.harsh.AppointDoctor.Repo;
 
+import com.harsh.AppointDoctor.Enums.AppointmentStatus;
 import com.harsh.AppointDoctor.Models.AppointmentBooking;
-import com.harsh.AppointDoctor.Models.Users;
-import org.springframework.data.convert.ReadingConverter;
+import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.time.LocalDate;
 import java.util.List;
 
 @Repository
 public interface AppointmentBookingRepo extends JpaRepository<AppointmentBooking,String> {
     List<AppointmentBooking> findByEmail(String email);
-    List<AppointmentBooking> findByDoctorIdAndDate(String doctorId, String date);
+    List<AppointmentBooking> findByDoctorIdAndDateAndStatus(String doctorId, String date, AppointmentStatus status);
 
-    @Query("SELECT a FROM AppointmentBooking a WHERE a.email = :email AND (a.status = false AND a.date >= :today)")
+
+    @Query("SELECT a FROM AppointmentBooking a " +
+            "WHERE a.email = :email " +
+            "AND a.status IN (:statuses) " +
+            "AND a.date >= :today")
     List<AppointmentBooking> findActiveOrFutureAppointmentsByEmail(
-        @Param("email") String email,
-        @Param("today") String today // Pass today's date as "yyyy-MM-dd"
+            @Param("email") String email,
+            @Param("today") String today,
+            @Param("statuses") List<AppointmentStatus> statuses
     );
+
+    long countByDoctorId(String doctorId);
+
+    List<AppointmentBooking> findByDoctorIdAndDateAndStatusIn(String doctorId, String date, List<AppointmentStatus> status);
+    Page<AppointmentBooking> findByDoctorIdAndDateAndStatusIn(String doctorId, String date, List<AppointmentStatus> status,Pageable pageable);
+
+
 }

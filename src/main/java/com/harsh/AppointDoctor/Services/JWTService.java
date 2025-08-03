@@ -4,7 +4,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+
 import java.util.function.Function;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -19,38 +22,34 @@ import java.util.Map;
 @Service
 public class JWTService {
 
-    public String secretKey = "";
-
-    public JWTService() throws NoSuchAlgorithmException {
-        KeyGenerator  keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-        SecretKey key = keyGenerator.generateKey();
-        secretKey = Base64.getEncoder().encodeToString(key.getEncoded());
-    }
+    @Value("${jwt.secret}")
+    private String secretKey;
 
     public String generateToken(String email) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "access");
 
         return Jwts.builder()
                 .claims()
                 .add(claims)
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 hours
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 min expiry
                 .and()
                 .signWith(getKey())
                 .compact();
     }
 
     private SecretKey getKey() {
-        byte[]  keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor( keyBytes);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver ){
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }

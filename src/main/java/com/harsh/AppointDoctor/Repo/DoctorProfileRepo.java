@@ -16,4 +16,9 @@ public interface DoctorProfileRepo extends JpaRepository<DoctorProfile,String> {
 
     @Query("SELECT d FROM DoctorProfile d WHERE LOWER(d.specialization) = LOWER(:specialization) AND LOWER(d.id) = LOWER(:id)")
     DoctorProfile findBySpecializationAndIdIgnoreCase(String specialization, String id);
+
+    @Query("SELECT DISTINCT d.specialization FROM DoctorProfile d")
+    List<String> findSpecialization();
+
+    DoctorProfile findByEmail(String email);
 }

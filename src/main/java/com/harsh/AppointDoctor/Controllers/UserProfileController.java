@@ -6,29 +6,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/user-profile")
+@RequestMapping("/user")
 @CrossOrigin
 public class UserProfileController {
-
     @Autowired
     private UserProfileService userProfileService;
 
-    @PutMapping("update")
+    @PutMapping("update-profile")
     public ResponseEntity<?> updateProfile(@RequestBody UsersProfile profile) {
         try {
-            // Check if the user exists before updating the profile
             ResponseEntity<?> emailValidationResponse = userProfileService.userExistence(profile.getEmail());
 
             if (emailValidationResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
                 return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
             }
-
-            // Call service method to update the profile
             return userProfileService.updateUserProfile(profile);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error updating profile: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(Map.of("Error updating profile: ", e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

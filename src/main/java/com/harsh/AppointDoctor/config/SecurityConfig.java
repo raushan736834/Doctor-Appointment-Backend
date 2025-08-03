@@ -38,7 +38,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173","http://192.168.109.57:5173")); // frontend origin
+        config.setAllowedOrigins(List.of("http://localhost:5173"
+                ,"http://192.168.109.57:5173"
+                ,"http://10.197.223.57:5173/")); // frontend origin
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*")); // or specify headers
         config.setAllowCredentials(true);
@@ -48,22 +50,25 @@ public class SecurityConfig {
         return source;
     }
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/auth/signup","/auth/login", "/forget", "/forget/verify",
-                                "/reset", "/user/{email}","/appointment/booked-slots","/getSpecialist","/api/doctors/**")
-                        .permitAll()
+                        .requestMatchers("/auth/**","/api/public/**","/document","/api/notifications/**").permitAll()
+//                                 Role-based restrictions
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/user/**","/api/user/**","/api/payment").hasAnyRole("USER", "ADMIN") // both roles can access
+                        .requestMatchers("/appointment/**").hasAnyRole("USER","DOCTOR","ADMIN")
+                        .requestMatchers("api/doctor/**").hasRole("DOCTOR")
                         .anyRequest()
                         .authenticated()
                 ) // Require authentication for all other endpoints
 
 //                .httpBasic(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless authentication
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless authentication
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 
                 .build();

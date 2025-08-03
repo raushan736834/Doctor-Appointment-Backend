@@ -18,10 +18,14 @@ public class UserPrincipal implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            return Collections.singleton(new SimpleGrantedAuthority("USER")); // Default role
+            return Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
         }
-        return Collections.singleton(new SimpleGrantedAuthority(user.getRoles().trim()));  // Single role handling
+
+        return user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                .toList();
     }
+
 
     @Override
     public String getPassword() {

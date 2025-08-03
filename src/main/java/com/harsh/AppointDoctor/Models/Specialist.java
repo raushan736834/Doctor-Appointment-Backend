@@ -13,4 +13,6 @@ public class Specialist {
     private String image;
     @Column(name = "specialist")
     private String specialist;
+    private String description;
+    private String specialistOf;
 }

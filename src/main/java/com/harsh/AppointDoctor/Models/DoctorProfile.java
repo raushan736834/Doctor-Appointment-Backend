@@ -14,14 +14,19 @@ import java.util.UUID;
 public class DoctorProfile {
     @Id
     private String id;
+    @Column(unique = true)
     private String email;
     private String doctorName;
+    private String phoneNumber;
     private String specialization;
     private int consultationFees;
     private int experienceYears;
     private String profilePhoto;
+    private String gender;
     private String locality;
     private String clinicName;
+    private String state;
+    private String pincode;
     private String city;
     @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.EAGER)
     @JsonManagedReference

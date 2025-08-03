@@ -16,7 +16,7 @@ public class DoctorProfileService {
 
     public DoctorProfile saveDoctor(DoctorProfile doctor) {
         for (Qualification q : doctor.getQualifications()) {
-            q.setDoctor(doctor); // Important for bidirectional mapping
+            q.setDoctor(doctor);
         }
         return doctorRepository.save(doctor);
     }
@@ -38,6 +38,14 @@ public class DoctorProfileService {
 
     public DoctorProfile getDoctorBySpecializationAndId(DoctorProfile doctor) {
         return doctorRepository.findBySpecializationAndIdIgnoreCase(doctor.getSpecialization(),doctor.getId());
+    }
+
+    public List<String> getAllSpecialization() {
+        return doctorRepository.findSpecialization();
+    }
+
+    public DoctorProfile getDoctorData(String email) {
+        return doctorRepository.findByEmail(email);
     }
 }
 

@@ -1,27 +1,29 @@
 package com.harsh.AppointDoctor.Services;
 
+import com.harsh.AppointDoctor.Enums.Role;
 import com.harsh.AppointDoctor.Models.Users;
 import com.harsh.AppointDoctor.Models.UsersProfile;
 import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserRepo;
-import com.harsh.AppointDoctor.Utility.ErrorResponse;
-import com.harsh.AppointDoctor.Utility.LoginResponse;
+import com.harsh.AppointDoctor.DTOs.LoginRequest;
+import com.harsh.AppointDoctor.DTOs.LoginResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class UserService {
+public class AuthService {
 
     @Autowired
     private UserRepo repo;
@@ -40,17 +42,20 @@ public class UserService {
     public Users register(Users user) {
         user.setPassword(encoder.encode(user.getPassword()));
         if (user.getRoles() == null) {
-            user.setRoles("user");
+            user.setRoles(List.of(Role.USER));
+        } else {
+            // Convert each role to uppercase before assigning
+            List<Role> uppercaseRoles = user.getRoles().stream()
+                    .map(role -> Role.valueOf(role.name().toUpperCase()))
+                    .toList();
+            user.setRoles(uppercaseRoles);
         }
 
         Users savedUser = repo.save(user);
-
         UsersProfile userProfile = new UsersProfile();
         userProfile.setFullName(savedUser.getFirstName() + " " + savedUser.getLastName());
         userProfile.setEmail(savedUser.getEmail());
-
         profileRepo.save(userProfile);
-
         return savedUser;
     }
 
@@ -63,69 +68,33 @@ public class UserService {
         }
     }
 
-//    public ResponseEntity<?> verify(Users loginRequest) {
-//        Authentication authentication =
-//                authenticationManager.authenticate(
-//                        new UsernamePasswordAuthenticationToken(
-//                                loginRequest.getEmail(), loginRequest.getPassword()
-//                        )
-//                );
-//
-//        if (authentication.isAuthenticated()) {
-//            String token = jwtService.generateToken(loginRequest.getEmail());
-//            // Retrieve authenticated user details
-//            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-//            // Extract roles as a single String
-//            String roles = userDetails.getAuthorities().stream()
-//                    .map(GrantedAuthority::getAuthority)
-//                    .collect(Collectors.joining(","));  // Converts list to comma-separated String
-//
-//            return new ResponseEntity<>(new LoginResponse("Login Successful", HttpStatus.OK.value(), token,
-//                    loginRequest.getEmail(), roles,
-//                    loginRequest.getFirstName()+" "+ loginRequest.getLastName()),HttpStatus.B);
-//
-//        }
-//        return null;
-//    }
-
-    public ResponseEntity<?> verify(Users loginRequest) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginRequest.getEmail(),
-                            loginRequest.getPassword()
-                    )
-            );
-
-            if (authentication.isAuthenticated()) {
-                UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-                // Generate token
-                String token = jwtService.generateToken(userDetails.getUsername());
-
-                // Extract roles
-                String roles = userDetails.getAuthorities().stream()
-                        .map(GrantedAuthority::getAuthority)
-                        .collect(Collectors.joining(","));
-
-                // Fetch full name from DB using email
-                Users userFromDB = repo.findByEmail(loginRequest.getEmail());
-                if(userFromDB == null){
-                    return new ResponseEntity<>("Authentication Failed",HttpStatus.UNAUTHORIZED);
-                }
-
-                String fullName = userFromDB.getFirstName() + " " + userFromDB.getLastName();
-
-                return new ResponseEntity<>(new LoginResponse("Login Successful", HttpStatus.OK.value(), token,
-                        loginRequest.getEmail(), roles, fullName),HttpStatus.OK);
-            }
-        } catch (AuthenticationException ex) {
-            throw ex;
-        } catch (Exception e) {
-            throw new RuntimeException("Internal error during login", e);
+    public LoginResult verify(LoginRequest loginRequest) {
+        if (loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
+            throw new IllegalArgumentException("Email and password are required.");
         }
-        return null;
+
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getEmail(),
+                        loginRequest.getPassword()
+                )
+        );
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+
+        Users userFromDB = repo.findByEmail(loginRequest.getEmail());
+        if (userFromDB == null) {
+            throw new UsernameNotFoundException("User not found in database.");
+        }
+
+        String fullName = userFromDB.getFirstName() + " " + userFromDB.getLastName();
+
+        return new LoginResult(loginRequest.getEmail(), roles, fullName);
     }
+
+
 
     public void addOtp(Users user, int otp) {
         Users usersOptional = repo.findByEmail(user.getEmail());
@@ -182,5 +151,17 @@ public class UserService {
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+    }
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        Users user = repo.findByEmail(email);
+        if (user == null)
+            throw new UsernameNotFoundException("User Not Found");
+
+        if (!encoder.matches(oldPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+
+        user.setPassword(encoder.encode(newPassword));
+        repo.save(user);
     }
 }

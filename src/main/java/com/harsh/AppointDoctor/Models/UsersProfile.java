@@ -12,13 +12,9 @@ public class UsersProfile {
 
     @Id
     private String email;
-
     private String fullName;
     private String gender;
-//    @Column(name = "Date Of Birth")
-//    private String dob;
     private String phone;
-
     private String address;
     private String city;
     private String country;

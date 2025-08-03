@@ -4,6 +4,7 @@ import com.harsh.AppointDoctor.Models.UserPrincipal;
 import com.harsh.AppointDoctor.Models.Users;
 import com.harsh.AppointDoctor.Repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -24,5 +25,6 @@ public class MyUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("User Not Found");
         }
         return new UserPrincipal(user);
+
     }
 }

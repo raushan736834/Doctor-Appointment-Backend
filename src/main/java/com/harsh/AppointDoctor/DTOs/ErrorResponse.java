@@ -1,4 +1,4 @@
-package com.harsh.AppointDoctor.Utility;
+package com.harsh.AppointDoctor.DTOs;
 
 public class ErrorResponse {
 

@@ -1,10 +1,12 @@
 package com.harsh.AppointDoctor.Models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import com.harsh.AppointDoctor.Enums.Role;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Entity
 @Data
@@ -16,6 +18,8 @@ public class Users {
     private String firstName;
     private String lastName;
     private String password;
-    private String roles;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING) // Store enum name (not ordinal) in DB
+    private List<Role> roles; // e.g., [USER, ADMIN]
     private int otp;
 }

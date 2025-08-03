@@ -29,9 +29,7 @@ public class UserProfileService {
     }
 
     public ResponseEntity<?> updateUserProfile(UsersProfile profile) {
-        System.out.println(profile);
         UsersProfile existingProfile = userProfileRepo.findByEmail(profile.getEmail());
-        System.out.println("fullname "+profile.getFullName());
         if (existingProfile != null) {
             existingProfile.setFullName(profile.getFullName());
             existingProfile.setPhone(profile.getPhone());
@@ -41,7 +39,7 @@ public class UserProfileService {
             existingProfile.setCity(profile.getCity());
             existingProfile.setState(profile.getState());
             existingProfile.setPincode(profile.getPincode());
-            userProfileRepo.save(existingProfile);
+            UsersProfile updatedProfile = userProfileRepo.save(existingProfile);
             return new ResponseEntity<>("Profile updated successfully", HttpStatus.OK);
         } else {
             return new ResponseEntity<>("Profile not found", HttpStatus.NOT_FOUND);

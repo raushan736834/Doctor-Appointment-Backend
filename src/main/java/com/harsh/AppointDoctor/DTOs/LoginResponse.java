@@ -1,4 +1,4 @@
-package com.harsh.AppointDoctor.Utility;
+package com.harsh.AppointDoctor.DTOs;
 
 import lombok.*;
 
@@ -11,16 +11,31 @@ public class LoginResponse {
     private String email;
     private String roles;
     private String fullname;
+    private String refreshToken;
+    private String doctorId;
 
     // Constructor
-    public LoginResponse(String message, int status, String token, String email, String roles,String fullname) {
+    public LoginResponse(String message, int status, String token,String refreshToken ,String email, String roles,String fullname) {
         this.message = message;
         this.status = status;
         this.token = token;
+        this.refreshToken = refreshToken;
         this.email = email;
         this.roles = roles;
         this.fullname = fullname;
     }
+
+    public LoginResponse(String message, int status, String token,String refreshToken ,String email, String roles,String fullname, String doctorId) {
+        this.message = message;
+        this.status = status;
+        this.token = token;
+        this.refreshToken = refreshToken;
+        this.email = email;
+        this.roles = roles;
+        this.fullname = fullname;
+        this.doctorId = doctorId;
+    }
+
 
     @Override
     public String toString() {
@@ -28,6 +43,7 @@ public class LoginResponse {
                 "message='" + message + '\'' +
                 ", status=" + status +
                 ", token='" + token + '\'' +
+                ", refreshToken='" + refreshToken + '\'' +
                 ", email='" + email + '\'' +
                 ", roles=" + roles +
                 '}';

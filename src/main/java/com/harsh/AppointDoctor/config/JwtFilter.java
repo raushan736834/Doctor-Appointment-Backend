@@ -2,6 +2,7 @@ package com.harsh.AppointDoctor.config;
 
 import com.harsh.AppointDoctor.Services.JWTService;
 import com.harsh.AppointDoctor.Services.MyUserDetailsService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,7 +44,20 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")){
             token = authHeader.substring(7);
-            email = jwtService.extractEmail(token);
+            try {
+                email = jwtService.extractEmail(token);
+            } catch (ExpiredJwtException ex) {
+                // Log and explicitly set response status to 401
+                logger.warn("Expired JWT token detected: {}");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Access token expired");
+                return; // Stop filter chain, let frontend handle refresh
+            } catch (Exception ex) {
+                logger.error("JWT extraction error: {}");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid token");
+                return; // Stop filter chain
+            }
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null){
