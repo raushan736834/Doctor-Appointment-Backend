@@ -107,7 +107,7 @@ public class AuthController {
             mailService.sendSimpleEmail(user.getEmail(), "Appoint Doctor - Recover Your Account",
                     "Otp for recovering account: "+ otp);
             service.addOtp(user,otp);
-            return new ResponseEntity<>(otp, HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.OK);
         }else {
             return new ResponseEntity<>("Email not found", HttpStatus.NOT_FOUND);
         }

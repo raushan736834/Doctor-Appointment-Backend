@@ -2,8 +2,11 @@ package com.harsh.AppointDoctor.Services;
 
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Qualification;
+import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
+import com.harsh.AppointDoctor.Repo.SpecialistRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,6 +16,9 @@ public class DoctorProfileService {
 
     @Autowired
     private DoctorProfileRepo doctorRepository;
+
+    @Autowired
+    private SpecialistRepo specialistRepo;
 
     public DoctorProfile saveDoctor(DoctorProfile doctor) {
         for (Qualification q : doctor.getQualifications()) {
@@ -46,6 +52,18 @@ public class DoctorProfileService {
 
     public DoctorProfile getDoctorData(String email) {
         return doctorRepository.findByEmail(email);
+    }
+
+    public List<Specialist> saveAllSpecialist(List<Specialist> specialists) {
+        return specialistRepo.saveAll(specialists);
+    }
+
+    public List<String> getDistinctCities() {
+        return doctorRepository.findDistinctCities();
+    }
+
+    public List<DoctorProfile> searchDoctorsByCityAndSpecialist(String city, String specialist) {
+        return doctorRepository.findBySpecializationAndCityIgnoreCase(specialist,city);
     }
 }
 

@@ -1,6 +1,7 @@
 package com.harsh.AppointDoctor.Controllers;
 
 import com.harsh.AppointDoctor.Models.DoctorProfile;
+import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Services.DoctorProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/user")
+@RequestMapping("/api/user")
 public class DoctorProfileController {
     @Autowired
     private DoctorProfileService doctorService;
@@ -46,20 +47,23 @@ public class DoctorProfileController {
         }
     }
 
+    @PostMapping("/saveAllSpecialist")
+    public ResponseEntity<?> saveSpecialist(@RequestBody List<Specialist> specialists){
+        try{
+            List<Specialist> savedSpecialist = doctorService.saveAllSpecialist(specialists);
+            if (savedSpecialist != null){
+                return new ResponseEntity<>(HttpStatus.CREATED);
+            }else
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @GetMapping("/allSpecialist")
     public ResponseEntity<List<String>> getAllSpecialization() {
         List<String> doctors = doctorService.getAllSpecialization();
         return ResponseEntity.ok(doctors);
-    }
-
-    @PostMapping("/getDoctor")
-    public ResponseEntity<?> getDoctorBySpecializationAndId(@RequestBody DoctorProfile doctor){
-        DoctorProfile doctorProfile = doctorService.getDoctorBySpecializationAndId(doctor);
-        if (doctorProfile != null) {
-            return new ResponseEntity<>(doctorProfile, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Doctor not found", HttpStatus.NOT_FOUND);
-        }
     }
 }
 

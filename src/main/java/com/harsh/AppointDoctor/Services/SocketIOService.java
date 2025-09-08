@@ -24,19 +24,23 @@ public class SocketIOService {
 
     @PostConstruct
     public void startServer() {
-        server.addConnectListener(onConnected());
-        server.addDisconnectListener(onDisconnected());
+        try {
+            server.addConnectListener(onConnected());
+            server.addDisconnectListener(onDisconnected());
 
-        // Listen for user join events
-        server.addEventListener("join", String.class, (client, userEmail, ackSender) -> {
-            log.info("User {} joined with session {}", userEmail, client.getSessionId());
-            userSessions.put(userEmail, client.getSessionId().toString());
-            client.joinRoom(userEmail); // Join a room with their email
-        });
+            server.addEventListener("join", String.class, (client, userEmail, ackSender) -> {
+                log.info("User {} joined with session {}", userEmail, client.getSessionId());
+                userSessions.put(userEmail, client.getSessionId().toString());
+                client.joinRoom(userEmail);
+            });
 
-        server.start();
-        log.info("Socket.IO server started on port: {}", server.getConfiguration().getPort());
+            server.start();
+            log.info("Socket.IO server started on port: {}", server.getConfiguration().getPort());
+        } catch (Exception e) {
+            log.error("Failed to start Socket.IO server: {}", e.getMessage(), e);
+        }
     }
+
 
     @PreDestroy
     public void stopServer() {

@@ -19,7 +19,12 @@ public class Users {
     private String lastName;
     private String password;
     @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING) // Store enum name (not ordinal) in DB
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_email")
+    )
+    @Column(name = "role") // Store enum name (not ordinal) in DB
     private List<Role> roles; // e.g., [USER, ADMIN]
     private int otp;
 }

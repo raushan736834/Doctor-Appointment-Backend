@@ -1,8 +1,10 @@
 package com.harsh.AppointDoctor.Services;
 
 import com.harsh.AppointDoctor.Enums.Role;
+import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Users;
 import com.harsh.AppointDoctor.Models.UsersProfile;
+import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserRepo;
 import com.harsh.AppointDoctor.DTOs.LoginRequest;
@@ -18,8 +20,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,6 +37,9 @@ public class AuthService {
     private UserProfileRepo profileRepo;
 
     @Autowired
+    DoctorProfileRepo doctorProfileRepo;
+
+    @Autowired
     private JWTService jwtService;
 
     @Autowired
@@ -39,6 +47,7 @@ public class AuthService {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
+    @Transactional
     public Users register(Users user) {
         user.setPassword(encoder.encode(user.getPassword()));
         if (user.getRoles() == null) {
@@ -52,10 +61,18 @@ public class AuthService {
         }
 
         Users savedUser = repo.save(user);
-        UsersProfile userProfile = new UsersProfile();
-        userProfile.setFullName(savedUser.getFirstName() + " " + savedUser.getLastName());
-        userProfile.setEmail(savedUser.getEmail());
-        profileRepo.save(userProfile);
+        if (new HashSet<>(savedUser.getRoles()).containsAll(List.of(Role.USER,Role.DOCTOR))){
+            DoctorProfile doctorProfile = new DoctorProfile();
+            doctorProfile.setId(UUID.randomUUID().toString());
+            doctorProfile.setEmail(savedUser.getEmail());
+            doctorProfile.setDoctorName(savedUser.getFirstName()+" "+savedUser.getLastName());
+            doctorProfileRepo.save(doctorProfile);
+        } else {
+            UsersProfile userProfile = new UsersProfile();
+            userProfile.setFullName(savedUser.getFirstName() + " " + savedUser.getLastName());
+            userProfile.setEmail(savedUser.getEmail());
+            profileRepo.save(userProfile);
+        }
         return savedUser;
     }
 
@@ -77,7 +94,7 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getEmail(),
                         loginRequest.getPassword()
-                )
+                  )
         );
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String roles = userDetails.getAuthorities().stream()
@@ -93,8 +110,6 @@ public class AuthService {
 
         return new LoginResult(loginRequest.getEmail(), roles, fullName);
     }
-
-
 
     public void addOtp(Users user, int otp) {
         Users usersOptional = repo.findByEmail(user.getEmail());

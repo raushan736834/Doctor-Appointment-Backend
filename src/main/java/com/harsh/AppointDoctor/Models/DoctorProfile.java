@@ -14,7 +14,6 @@ import java.util.UUID;
 public class DoctorProfile {
     @Id
     private String id;
-    @Column(unique = true)
     private String email;
     private String doctorName;
     private String phoneNumber;

@@ -236,15 +236,17 @@ public class AppointmentBookingService {
                 appointment.getFullName(),
                 appointment.getDate());
 
-        Notification doctorNotification = new Notification(
-                appointment.getDoctor().getEmail(),
-                "Appointment Cancelled by Patient",
-                doctorMessage,
-                AppointmentStatus.CANCELLED,
-                appointmentId
-        );
+        if(appointment.getDoctor().getEmail() != null){
+            Notification doctorNotification = new Notification(
+                    appointment.getDoctor().getEmail(),
+                    "Appointment Cancelled by Patient",
+                    doctorMessage,
+                    AppointmentStatus.CANCELLED,
+                    appointmentId
+            );
 
-        notificationRepository.save(doctorNotification);
-        socketIOService.sendNotificationToUser(appointment.getDoctor().getEmail(), doctorNotification);
+            notificationRepository.save(doctorNotification);
+            socketIOService.sendNotificationToUser(appointment.getDoctor().getEmail(), doctorNotification);
+        }
     }
 }

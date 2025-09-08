@@ -41,4 +41,3 @@ public class SocketIOConfig {
         return new SpringAnnotationScanner(socketServer);
     }
 }
-

@@ -1,8 +1,10 @@
 package com.harsh.AppointDoctor.Repo;
 
+import com.harsh.AppointDoctor.Models.City;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -14,6 +16,11 @@ public interface DoctorProfileRepo extends JpaRepository<DoctorProfile,String> {
             "LOWER(d.city) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<DoctorProfile> searchDoctor(String keyword);
 
+    @Query("SELECT d FROM DoctorProfile d WHERE LOWER(d.specialization) = LOWER(:specialization) AND LOWER(d.city) = LOWER(:city)")
+    List<DoctorProfile> findBySpecializationAndCityIgnoreCase(
+            @Param("specialization") String specialization,
+            @Param("city") String city);
+
     @Query("SELECT d FROM DoctorProfile d WHERE LOWER(d.specialization) = LOWER(:specialization) AND LOWER(d.id) = LOWER(:id)")
     DoctorProfile findBySpecializationAndIdIgnoreCase(String specialization, String id);
 
@@ -21,4 +28,8 @@ public interface DoctorProfileRepo extends JpaRepository<DoctorProfile,String> {
     List<String> findSpecialization();
 
     DoctorProfile findByEmail(String email);
+    List<DoctorProfile> findByCity(City city);
+
+    @Query("SELECT DISTINCT d.city FROM DoctorProfile d")
+    List<String> findDistinctCities();
 }
