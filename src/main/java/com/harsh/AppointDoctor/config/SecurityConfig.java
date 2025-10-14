@@ -38,11 +38,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"
-                ,"https://doctor-appointment-nine-puce.vercel.app"
-                ,"http://10.197.223.57:5173")); // frontend origin
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://10.197.223.57:5173",
+                "https://doctor-appointment-nine-puce.vercel.app"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*")); // or specify headers
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -61,7 +65,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/user/**","/api/user/**","/api/payment").hasAnyRole("USER", "ADMIN") // both roles can access
                         .requestMatchers("/appointment/**").hasAnyRole("USER","DOCTOR","ADMIN")
-                        .requestMatchers("api/doctor/**").hasRole("DOCTOR")
+                        .requestMatchers("/api/doctors/**").hasRole("DOCTOR")
                         .anyRequest()
                         .authenticated()
                 ) // Require authentication for all other endpoints
@@ -83,7 +87,7 @@ public class SecurityConfig {
         return provider;
     }
 
-    //
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();

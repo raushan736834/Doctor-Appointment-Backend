@@ -1,0 +1,50 @@
+package com.harsh.AppointDoctor.Models.DoctorOnboarding;
+
+import com.harsh.AppointDoctor.Enums.AccountStatus;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.ToString;
+import org.hibernate.annotations.UuidGenerator;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@Entity
+@Table(name = "doctor")
+public class Doctor {
+    @Id
+    @UuidGenerator
+    private String doctorId;
+    @Lob
+    private byte[] profileImage;
+    @Column(unique = true)
+    private String email;
+    private String firstName;
+    private String lastName;
+    private String phone;
+    private String dob;
+    private String gender;
+    private String address;
+    private String city;
+    private String state;
+    private String pincode;
+    @Enumerated(EnumType.STRING)
+    private AccountStatus accountStatus;
+
+    @OneToOne(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private DoctorProfessional professional;
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @ToString.Exclude
+    private List<DoctorEducation> doctorEducation = new ArrayList<>();
+
+    @OneToOne(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private DoctorClinicInfo clinicInfos;
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<DoctorDocument> documents = new ArrayList<>();
+}

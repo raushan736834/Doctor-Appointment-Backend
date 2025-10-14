@@ -1,9 +1,13 @@
 package com.harsh.AppointDoctor.Services;
 
+import com.harsh.AppointDoctor.DTOs.UserInfoResponse;
+import com.harsh.AppointDoctor.Enums.AccountStatus;
 import com.harsh.AppointDoctor.Enums.Role;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Users;
 import com.harsh.AppointDoctor.Models.UsersProfile;
+import com.harsh.AppointDoctor.Repo.DoctorOnboardingRepo.DoctorRepo;
 import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserRepo;
@@ -22,9 +26,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,12 +42,45 @@ public class AuthService {
     DoctorProfileRepo doctorProfileRepo;
 
     @Autowired
+    private DoctorRepo doctorRepo;
+
+    @Autowired
     private JWTService jwtService;
 
     @Autowired
     AuthenticationManager authenticationManager;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+
+    public UserInfoResponse getCurrentUser(String email) {
+        Users user = repo.findByEmail(email);
+        if (user == null) throw new RuntimeException("User Not Found");
+
+
+        String doctorId = null;
+        String accountStatus = null;
+
+        if (user.getRoles().contains(Role.DOCTOR)) {
+            Doctor doctor = doctorRepo.findByEmail(email);
+            if (doctor != null) {
+                doctorId = doctor.getDoctorId();
+                accountStatus = doctor.getAccountStatus().name();
+            }
+        }
+
+        String fullName = user.getFirstName() + " " + user.getLastName();
+        String accessToken = jwtService.generateAccessToken(email); // Generate token
+
+        return new UserInfoResponse(
+                user.getEmail(),
+                fullName,
+                user.getRoles(),
+                doctorId,
+                accountStatus,
+                accessToken // Pass token to response
+        );
+    }
+
 
     @Transactional
     public Users register(Users user) {
@@ -67,6 +102,12 @@ public class AuthService {
             doctorProfile.setEmail(savedUser.getEmail());
             doctorProfile.setDoctorName(savedUser.getFirstName()+" "+savedUser.getLastName());
             doctorProfileRepo.save(doctorProfile);
+            Doctor doctor = new Doctor();
+            doctor.setEmail(user.getEmail());
+            doctor.setFirstName(user.getFirstName());
+            doctor.setLastName(user.getLastName());
+            doctor.setAccountStatus(AccountStatus.REGISTERED);
+            doctorRepo.save(doctor);
         } else {
             UsersProfile userProfile = new UsersProfile();
             userProfile.setFullName(savedUser.getFirstName() + " " + savedUser.getLastName());
@@ -85,31 +126,29 @@ public class AuthService {
         }
     }
 
-    public LoginResult verify(LoginRequest loginRequest) {
-        if (loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
-            throw new IllegalArgumentException("Email and password are required.");
-        }
-
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail(),
-                        loginRequest.getPassword()
-                  )
-        );
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(","));
-
-        Users userFromDB = repo.findByEmail(loginRequest.getEmail());
-        if (userFromDB == null) {
-            throw new UsernameNotFoundException("User not found in database.");
-        }
-
-        String fullName = userFromDB.getFirstName() + " " + userFromDB.getLastName();
-
-        return new LoginResult(loginRequest.getEmail(), roles, fullName);
-    }
+//    public LoginResult verify(LoginRequest loginRequest) {
+//        if (loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
+//            throw new IllegalArgumentException("Email and password are required.");
+//        }
+//        Authentication authentication = authenticationManager.authenticate(
+//                new UsernamePasswordAuthenticationToken(
+//                        loginRequest.getEmail(),
+//                        loginRequest.getPassword()
+//                  )
+//        );
+//        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+//        String roles = userDetails.getAuthorities().stream()
+//                .map(GrantedAuthority::getAuthority)
+//                .collect(Collectors.joining(","));
+//
+//        Users userFromDB = repo.findByEmail(loginRequest.getEmail());
+//        if (userFromDB == null) {
+//            throw new UsernameNotFoundException("User not found in database.");
+//        }
+//
+//        String fullName = userFromDB.getFirstName() + " " + userFromDB.getLastName();
+//        return new LoginResult(loginRequest.getEmail(), roles, fullName);
+//    }
 
     public void addOtp(Users user, int otp) {
         Users usersOptional = repo.findByEmail(user.getEmail());
@@ -134,8 +173,9 @@ public class AuthService {
                 return new ResponseEntity<>("OTP Matched", HttpStatus.OK);
             } else
                 return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
-        } else
+        } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
     }
 
     public ResponseEntity<?> updatePassword(Users user) {

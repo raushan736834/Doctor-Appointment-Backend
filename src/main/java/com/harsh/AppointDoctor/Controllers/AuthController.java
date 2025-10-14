@@ -1,27 +1,27 @@
 package com.harsh.AppointDoctor.Controllers;
 
 import com.harsh.AppointDoctor.DTOs.*;
-import com.harsh.AppointDoctor.Models.DoctorProfile;
-import com.harsh.AppointDoctor.Models.RefreshToken;
+import com.harsh.AppointDoctor.Enums.Role;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.Users;
-import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
+import com.harsh.AppointDoctor.Repo.DoctorOnboardingRepo.DoctorRepo;
+import com.harsh.AppointDoctor.Repo.UserRepo;
 import com.harsh.AppointDoctor.Services.JWTService;
 import com.harsh.AppointDoctor.Services.MailService;
 import com.harsh.AppointDoctor.Services.AuthService;
 import com.harsh.AppointDoctor.Services.RefreshTokenService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
 import static com.harsh.AppointDoctor.Utility.OtpGenerator.generateSixDigitOtp;
 
 @RestController
@@ -34,7 +34,45 @@ public class AuthController {
     private final JWTService jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final MailService mailService;
-    private final DoctorProfileRepo doctorProfileRepo;
+    private final DoctorRepo doctorRepo;
+    private final UserRepo userRepo;
+    private final AuthenticationManager authManager;
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
+        String refreshToken = null;
+
+        // Extract refresh token from cookie
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Refresh token not found"));
+        }
+
+        try {
+            // Validate refresh token
+            if (!jwtUtil.validateRefreshToken(refreshToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid or expired refresh token"));
+            }
+
+            String email = jwtUtil.extractEmail(refreshToken);
+
+            UserInfoResponse userInfo = service.getCurrentUser(email);
+            return ResponseEntity.ok(userInfo);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Token validation failed"));
+        }
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<?> register(@RequestBody Users user) {
@@ -44,7 +82,7 @@ public class AuthController {
                 return new ResponseEntity<>("Email already in use", HttpStatus.CONFLICT);
             }
             // Add the user
-            Users newUser = service.register(user);
+            service.register(user);
             mailService.sendSimpleEmail(user.getEmail(), "Welcome to Appoint Doctor",
                     "Thank you for registering!");
             return new ResponseEntity<>("Account Created", HttpStatus.CREATED);
@@ -54,47 +92,62 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         try {
-            LoginResult loginResult = service.verify(loginRequest);
+            Authentication authentication = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+            );
 
-            String accessToken = jwtUtil.generateToken(loginResult.getEmail());
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(loginResult.getEmail());
+            if (authentication.isAuthenticated()) {
+                String email = loginRequest.getEmail();
 
-            if (Objects.equals(loginResult.getRoles(), "ROLE_USER,ROLE_DOCTOR")){
-                DoctorProfile doctorProfile = doctorProfileRepo.findByEmail(loginRequest.getEmail());
-                LoginResponse response = new LoginResponse(
+                String accessToken = jwtUtil.generateAccessToken(email);
+                String refreshToken = jwtUtil.generateRefreshToken(email);
+
+                Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+                refreshCookie.setHttpOnly(true);
+                refreshCookie.setSecure(true); // Set to true in production with HTTPS
+                refreshCookie.setPath("/");
+                refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+                refreshCookie.setAttribute("SameSite", "Strict");
+                response.addCookie(refreshCookie);
+
+                Users user = userRepo.findByEmail(email);
+                LoginResponse loginResponse = null;
+                if (user.getRoles().contains(Role.DOCTOR)) {
+                    Doctor doctor = doctorRepo.findByEmail(loginRequest.getEmail());
+                    loginResponse = new LoginResponse(
+                            "Login successful",
+                            HttpStatus.OK.value(),
+                            accessToken,
+                            refreshToken,
+                            loginRequest.getEmail(),
+                            user.getRoles(),
+                            user.getFirstName() + " " + user.getLastName(),
+                            doctor.getDoctorId(),
+                            doctor.getAccountStatus()
+                    );
+                    return ResponseEntity.ok(loginResponse);
+                }
+
+                loginResponse = new LoginResponse(
                         "Login successful",
                         HttpStatus.OK.value(),
                         accessToken,
-                        refreshToken.getToken(),
-                        loginResult.getEmail(),
-                        loginResult.getRoles(),
-                        loginResult.getFullName(),
-                        doctorProfile.getId()
+                        refreshToken,
+                        loginRequest.getEmail(),
+                        user.getRoles(),
+                        user.getFirstName() + " " + user.getLastName()
                 );
-                return ResponseEntity.ok(response);
-
+                return ResponseEntity.ok(loginResponse);
             }
-            LoginResponse response = new LoginResponse(
-                    "Login successful",
-                    HttpStatus.OK.value(),
-                    accessToken,
-                    refreshToken.getToken(),
-                    loginResult.getEmail(),
-                    loginResult.getRoles(),
-                    loginResult.getFullName()
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (BadCredentialsException | UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
+            else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid credentials"));
+            }
         } catch (AuthenticationException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error during login.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid credentials"));
         }
     }
 
@@ -125,34 +178,84 @@ public class AuthController {
 
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        if (email == null || email.isEmpty()) {
-            return ResponseEntity.badRequest().body("Email is required for logout");
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        // Clear refresh token cookie
+        Cookie refreshCookie = new Cookie("refreshToken", "");
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(true);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(0); // Delete cookie
+        refreshCookie.setAttribute("SameSite", "Strict");
+        response.addCookie(refreshCookie);
+
+        // Invalidate refresh token from server side
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName()) && !cookie.getValue().isEmpty()) {
+                    jwtUtil.invalidateRefreshToken(cookie.getValue());
+                    break;
+                }
+            }
         }
-        refreshTokenService.deleteByUsername(email);
-        return ResponseEntity.ok("Logged out successfully");
+
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@RequestBody TokenRefreshRequest request) {
-        if (request.getRefreshToken() == null || request.getRefreshToken().isEmpty()) {
-            return ResponseEntity.badRequest().body("Refresh token is required");
+    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = null;
+
+        // Extract refresh token from cookie
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
         }
 
-        Optional<RefreshToken> refreshTokenOpt = refreshTokenService.findByToken(request.getRefreshToken());
-        if (refreshTokenOpt.isEmpty() || !refreshTokenService.isValid(refreshTokenOpt.get())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Refresh token not found"));
         }
 
-        String username = refreshTokenOpt.get().getUsername();
-        String newAccessToken = jwtUtil.generateToken(username);
+        try {
+            // Validate refresh token
+            if (!jwtUtil.validateRefreshToken(refreshToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid or expired refresh token"));
+            }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("accessToken", newAccessToken);
-        response.put("refreshToken", request.getRefreshToken());
+            String email = jwtUtil.extractEmail(refreshToken);
 
-        return ResponseEntity.ok(response);
+            // Generate new access token
+            String newAccessToken = jwtUtil.generateAccessToken(email);
+
+            // Optionally generate new refresh token (token rotation)
+            String newRefreshToken = jwtUtil.generateRefreshToken(email);
+
+            // Invalidate old refresh token
+            jwtUtil.invalidateRefreshToken(refreshToken);
+
+            // Set new refresh token cookie
+            Cookie newRefreshCookie = new Cookie("refreshToken", newRefreshToken);
+            newRefreshCookie.setHttpOnly(true);
+            newRefreshCookie.setSecure(true); // Set to true in production
+            newRefreshCookie.setPath("/");
+            newRefreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+            newRefreshCookie.setAttribute("SameSite", "Strict");
+            response.addCookie(newRefreshCookie);
+
+            return ResponseEntity.ok(Map.of(
+                    "accessToken", newAccessToken,
+                    "message", "Token refreshed successfully"
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Token refresh failed"));
+        }
     }
 
     @PutMapping("/change-password")
