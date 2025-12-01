@@ -2,23 +2,25 @@ package com.harsh.AppointDoctor.Models.DoctorOnboarding;
 
 import com.harsh.AppointDoctor.Enums.AccountStatus;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.ToString;
-import org.hibernate.annotations.UuidGenerator;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
 @Entity
-@Table(name = "doctor")
+@Table(name = "doctor", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Doctor {
     @Id
-    @UuidGenerator
+//    @UuidGenerator
     private String doctorId;
     @Lob
     private byte[] profileImage;
-    @Column(unique = true)
+//    private String profileImage;
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
     private String firstName;
     private String lastName;
@@ -40,11 +42,11 @@ public class Doctor {
     @ToString.Exclude
     private List<DoctorEducation> doctorEducation = new ArrayList<>();
 
-    @OneToOne(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @ToString.Exclude
     private DoctorClinicInfo clinicInfos;
 
-    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @ToString.Exclude
     private List<DoctorDocument> documents = new ArrayList<>();
 }

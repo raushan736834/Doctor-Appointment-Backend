@@ -100,16 +100,14 @@ public class AuthController {
 
             if (authentication.isAuthenticated()) {
                 String email = loginRequest.getEmail();
-
                 String accessToken = jwtUtil.generateAccessToken(email);
                 String refreshToken = jwtUtil.generateRefreshToken(email);
-
                 Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
                 refreshCookie.setHttpOnly(true);
-                refreshCookie.setSecure(true); // Set to true in production with HTTPS
+                refreshCookie.setSecure(true);
                 refreshCookie.setPath("/");
                 refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
-                refreshCookie.setAttribute("SameSite", "Strict");
+                refreshCookie.setAttribute("SameSite", "None");
                 response.addCookie(refreshCookie);
 
                 Users user = userRepo.findByEmail(email);
@@ -185,7 +183,7 @@ public class AuthController {
         refreshCookie.setSecure(true);
         refreshCookie.setPath("/");
         refreshCookie.setMaxAge(0); // Delete cookie
-        refreshCookie.setAttribute("SameSite", "Strict");
+        refreshCookie.setAttribute("SameSite", "None");
         response.addCookie(refreshCookie);
 
         // Invalidate refresh token from server side
@@ -244,7 +242,7 @@ public class AuthController {
             newRefreshCookie.setSecure(true); // Set to true in production
             newRefreshCookie.setPath("/");
             newRefreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
-            newRefreshCookie.setAttribute("SameSite", "Strict");
+            newRefreshCookie.setAttribute("SameSite", "None");
             response.addCookie(newRefreshCookie);
 
             return ResponseEntity.ok(Map.of(

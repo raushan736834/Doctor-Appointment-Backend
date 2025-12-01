@@ -1,6 +1,5 @@
 package com.harsh.AppointDoctor.DTOs.DoctorDTOs;
 
-import com.harsh.AppointDoctor.Enums.AccountStatus;
 import lombok.Data;
 
 import java.util.List;
@@ -11,6 +10,6 @@ public class DoctorDTO {
     private DoctorProfessionalDetailsResponse professionalInfo;
     private List<DoctorEducationalDetailsResponse> education;
     private DoctorClinicResponse clinicInfos;
-//    private List<DoctorDocument> documents;
+    private List<DoctorDocumentResponse> documents;
 }
 

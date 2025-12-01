@@ -1,7 +1,10 @@
 package com.harsh.AppointDoctor.Controllers;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
+import com.harsh.AppointDoctor.DTOs.DoctorSearchDTO;
 import com.harsh.AppointDoctor.Models.AppointmentBooking;
 import com.harsh.AppointDoctor.Models.ContactUs;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
@@ -13,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.print.Doc;
 import java.util.List;
 
 @RestController
@@ -38,10 +40,21 @@ public class PublicController {
         return new ResponseEntity<>(data, HttpStatus.OK);
     }
 
+//    @GetMapping("/search")
+//    public ResponseEntity<List<DoctorProfile>> getDoctorByKeyword(@RequestParam String keyword){
+//        List<DoctorProfile> doctors = doctorService.searchDoctors(keyword);
+//        return ResponseEntity.ok(doctors);
+//    }
+
     @GetMapping("/search")
-    public ResponseEntity<List<DoctorProfile>> getDoctorByKeyword(@RequestParam String keyword){
-        List<DoctorProfile> doctors = doctorService.searchDoctors(keyword);
-        return ResponseEntity.ok(doctors);
+    public ResponseEntity<ApiResponse<?>> getDoctorDetails(@RequestParam String keyword){
+        List<Doctor> doctors = null;
+        try {
+            doctors = doctorService.searchDoctorDetails(keyword);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return new ResponseEntity<>(ApiResponse.success(doctors, "Doctors fetched successfully", 200), HttpStatus.OK);
     }
 
     @GetMapping("/searchByCityAndSpecialist")
@@ -57,7 +70,7 @@ public class PublicController {
 
     @PostMapping("/booked-slots")
     public ResponseEntity<List<String>> getBookedSlots(@RequestBody AppointmentBooking booking) {
-        List<String> bookedSlots = appointmentService.getBookedSlots(booking.getDoctor().getId(),
+        List<String> bookedSlots = appointmentService.getBookedSlots(booking.getDoctor().getDoctorId(),
                 booking.getDate());
         return ResponseEntity.ok(bookedSlots);
     }
@@ -75,11 +88,21 @@ public class PublicController {
         }
     }
 
+//    @PostMapping("/getDoctor")
+//    public ResponseEntity<?> getDoctorBySpecializationAndId(@RequestBody DoctorProfile doctor){
+//        DoctorProfile doctorProfile = doctorService.getDoctorBySpecializationAndId(doctor);
+//        if (doctorProfile != null) {
+//            return new ResponseEntity<>(doctorProfile, HttpStatus.OK);
+//        } else {
+//            return new ResponseEntity<>("Doctor not found", HttpStatus.NOT_FOUND);
+//        }
+//    }
+
     @PostMapping("/getDoctor")
-    public ResponseEntity<?> getDoctorBySpecializationAndId(@RequestBody DoctorProfile doctor){
-        DoctorProfile doctorProfile = doctorService.getDoctorBySpecializationAndId(doctor);
-        if (doctorProfile != null) {
-            return new ResponseEntity<>(doctorProfile, HttpStatus.OK);
+    public ResponseEntity<?> getDoctorDetails(@RequestBody DoctorSearchDTO doctor){
+        Doctor doctorDetails = doctorService.getDoctorById(doctor.getDoctorId());
+        if (doctorDetails != null) {
+            return new ResponseEntity<>(doctorDetails, HttpStatus.OK);
         } else {
             return new ResponseEntity<>("Doctor not found", HttpStatus.NOT_FOUND);
         }

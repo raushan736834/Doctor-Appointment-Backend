@@ -16,6 +16,13 @@ public interface DoctorProfileRepo extends JpaRepository<DoctorProfile,String> {
             "LOWER(d.city) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<DoctorProfile> searchDoctor(String keyword);
 
+//    @Query("SELECT d from Doctor d WHERE "+
+//            "LOWER(d.doctorName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR "+
+//            "LOWER(d.specialization) LIKE LOWER(CONCAT('%', :keyword, '%')) OR "+
+//            "LOWER(d.clinicName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR "+
+//            "LOWER(d.city) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+//    List<Doctor> searchDoctorsFromDoctor(String keyword);
+
     @Query("SELECT d FROM DoctorProfile d WHERE LOWER(d.specialization) = LOWER(:specialization) AND LOWER(d.city) = LOWER(:city)")
     List<DoctorProfile> findBySpecializationAndCityIgnoreCase(
             @Param("specialization") String specialization,

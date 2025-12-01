@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class DoctorPersonalProfileResponse {
+    private byte[] profileImage;
     private String doctorId;
     private String email;
     private String firstName;

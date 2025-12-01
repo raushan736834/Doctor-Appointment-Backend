@@ -4,10 +4,10 @@ public enum AccountStatus {
     REGISTERED,
     PERSONAL,
     PROFESSIONAL,
-    EDUCATION, 
+    EDUCATION,
     CLINIC,
     DOCUMENT,
-    REVIEW,
+    PENDING,
     BLOCKED,
     VERIFIED,
     COMPLETE

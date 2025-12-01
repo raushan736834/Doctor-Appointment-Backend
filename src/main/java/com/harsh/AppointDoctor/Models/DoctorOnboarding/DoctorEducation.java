@@ -1,5 +1,6 @@
 package com.harsh.AppointDoctor.Models.DoctorOnboarding;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -17,5 +18,6 @@ public class DoctorEducation {
     @ManyToOne
     @JoinColumn(name = "email", referencedColumnName = "email", nullable = false)
     @ToString.Exclude
+    @JsonIgnore
     private Doctor doctor;
 }

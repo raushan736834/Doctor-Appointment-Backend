@@ -1,9 +1,11 @@
 package com.harsh.AppointDoctor.Controllers;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
+import com.harsh.AppointDoctor.DTOs.AppointmentBookingRequest;
 import com.harsh.AppointDoctor.DTOs.AppointmentDTO;
+import com.harsh.AppointDoctor.DTOs.RescheduleAppointmentReqDTO;
 import com.harsh.AppointDoctor.Enums.AppointmentStatus;
 import com.harsh.AppointDoctor.Models.AppointmentBooking;
-import com.harsh.AppointDoctor.DTOs.AppointmentBookingRequest;
 import com.harsh.AppointDoctor.Models.Payment;
 import com.harsh.AppointDoctor.Services.AppointmentBookingService;
 import lombok.RequiredArgsConstructor;
@@ -57,24 +59,17 @@ public class AppointmentBookingController {
     }
 
     @PutMapping("/cancel-appointment")
-    public ResponseEntity<String> cancelAppointment(@RequestBody AppointmentDTO appointmentDTO) {
+    public ResponseEntity<ApiResponse<?>> cancelAppointment(@RequestBody AppointmentDTO appointmentDTO) {
         try {
-            if ("DOCTOR".equalsIgnoreCase(appointmentDTO.getDoneBy())) {
-                appointmentService.cancelAppointmentByDoctor(appointmentDTO.getAppointmentId(), appointmentDTO.getReason());
-            } else if ("PATIENT".equalsIgnoreCase(appointmentDTO.getDoneBy())) {
-                appointmentService.cancelAppointmentByPatient(appointmentDTO.getAppointmentId());
-            } else {
-                return ResponseEntity.badRequest().body("Invalid cancelledBy Value. Use 'PATIENT' or 'DOCTOR'");
-            }
-
-            return ResponseEntity.ok("Appointment cancelled successfully and notifications sent.");
+            return appointmentService.cancelAppointment(appointmentDTO);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error cancelling appointment: " + e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponse.error("Error Cancelling Appointment",500));
         }
     }
 
+
     @PutMapping("/reschedule-appointment")
-    public ResponseEntity<?> rescheduleAppointment(@RequestBody AppointmentBooking booking){
+    public ResponseEntity<?> rescheduleAppointment(@RequestBody RescheduleAppointmentReqDTO booking){
         return appointmentService.rescheduleAppointment(booking);
     }
 

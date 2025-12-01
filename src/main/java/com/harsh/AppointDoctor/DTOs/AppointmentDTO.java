@@ -8,7 +8,7 @@ import lombok.Setter;
 public class AppointmentDTO {
     private String appointmentId;
     private String reason;
-    private String doneBy;
+    private String cancelledBy;
     private String newDate;
     private String newTime;
     private String newPeriod;

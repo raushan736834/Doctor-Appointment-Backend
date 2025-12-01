@@ -1,11 +1,9 @@
 package com.harsh.AppointDoctor.DTOs.DoctorDTOs;
 
-import com.harsh.AppointDoctor.Models.DoctorOnboarding.OperationHours;
 import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.List;
-
 @Data
 public class DoctorClinicResponse {
     private String clinicName;
@@ -18,5 +16,5 @@ public class DoctorClinicResponse {
     private String clinicState;
     private String clinicPincode;
     private String consultationDuration;
-    private List<OperationHours> operatingHours = new ArrayList<>();
+    private List<OperatingHoursResponse> operatingHours = new ArrayList<>();
 }

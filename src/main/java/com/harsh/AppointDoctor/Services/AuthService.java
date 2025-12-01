@@ -11,23 +11,18 @@ import com.harsh.AppointDoctor.Repo.DoctorOnboardingRepo.DoctorRepo;
 import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserRepo;
-import com.harsh.AppointDoctor.DTOs.LoginRequest;
-import com.harsh.AppointDoctor.DTOs.LoginResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -97,12 +92,17 @@ public class AuthService {
 
         Users savedUser = repo.save(user);
         if (new HashSet<>(savedUser.getRoles()).containsAll(List.of(Role.USER,Role.DOCTOR))){
+
             DoctorProfile doctorProfile = new DoctorProfile();
             doctorProfile.setId(UUID.randomUUID().toString());
             doctorProfile.setEmail(savedUser.getEmail());
             doctorProfile.setDoctorName(savedUser.getFirstName()+" "+savedUser.getLastName());
             doctorProfileRepo.save(doctorProfile);
             Doctor doctor = new Doctor();
+            String generatedId = doctor.getDoctorId() == null || doctor.getDoctorId().isEmpty()
+                    ? UUID.randomUUID().toString()
+                    : doctor.getDoctorId();
+            doctor.setDoctorId(generatedId);
             doctor.setEmail(user.getEmail());
             doctor.setFirstName(user.getFirstName());
             doctor.setLastName(user.getLastName());

@@ -3,8 +3,11 @@ package com.harsh.AppointDoctor.Controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.DTOs.DoctorDTOs.*;
-import com.harsh.AppointDoctor.Models.DoctorOnboarding.*;
-import com.harsh.AppointDoctor.Repo.DoctorOnboardingRepo.DoctorRepo;
+import com.harsh.AppointDoctor.DTOs.DoctorOnboardingRequest;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.DoctorClinicInfo;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.DoctorEducation;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.DoctorProfessional;
 import com.harsh.AppointDoctor.Services.DoctorOnboardingService.DoctorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,9 +15,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/doctors")
@@ -33,7 +38,7 @@ public class DoctorController {
             Doctor doctor = new ObjectMapper().readValue(doctorJson, Doctor.class);
 
             if (profileImage != null && !profileImage.isEmpty()) {
-                doctor.setProfileImage(profileImage.getBytes());
+//                doctor.setProfileImage(profileImage.getBytes());
             }
 
             doctorService.saveBasicDetails(doctor, email);
@@ -69,10 +74,11 @@ public class DoctorController {
 
     @PutMapping("/clinicInfo")
     public ResponseEntity<?> addClinicInfo(@RequestBody DoctorClinicInfo clinicInfo, Principal principal) {
+        System.out.println(clinicInfo);
         try {
             String email = principal.getName();
-            doctorService.addClinicInfos(clinicInfo,email);
-            return new ResponseEntity<>(HttpStatus.CREATED);
+            ApiResponse<?> response = doctorService.addClinicInfos(clinicInfo,email);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -80,20 +86,33 @@ public class DoctorController {
 
     // Step 4: Add documents
     @PutMapping("/documents")
-    public ResponseEntity<ApiResponse<?>> addDocuments(
-            @RequestParam("files") List<MultipartFile> files,
+    public ResponseEntity<ApiResponse<?>> uploadDocuments(
+            @RequestParam(value = "medicalLicense") MultipartFile medicalLicense,
+            @RequestParam(value = "boardCertificate") MultipartFile boardCertificate,
+            @RequestParam(value = "malpracticeInsurance") MultipartFile malpracticeInsurance,
+            @RequestParam(value = "cv", required = false) MultipartFile cv,
             Principal principal) {
 
-            String email = principal.getName();
-            ApiResponse<?> response = doctorService.addDocuments(files, email);
-            // This makes the response consistent for both success and error cases
-            if (response.isSuccess()) {
-                return ResponseEntity.ok(response);
-            } else {
+        // Collect all files in one place and filter out null/empty ones
+        List<MultipartFile> documents = Stream.of(
+                        medicalLicense,
+                        boardCertificate,
+                        malpracticeInsurance,
+                        cv
+                )
+                .filter(Objects::nonNull)
+                .filter(file -> !file.isEmpty())
+                .collect(Collectors.toList());
 
-                return ResponseEntity.badRequest().body(response);
-            }
+        String email = principal.getName();
+
+        ApiResponse<?> response = doctorService.addDocuments(documents, email);
+
+        return response.isSuccess()
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.badRequest().body(response);
     }
+
 
 
     @GetMapping("/review")
@@ -105,6 +124,30 @@ public class DoctorController {
         } catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @PostMapping("/saveAllDoctors")
+    public ResponseEntity<ApiResponse<?>> saveAllDoctors(@RequestBody List<Doctor> doctors){
+        try {
+            doctorService.saveAllDoctors(doctors);
+            return ResponseEntity.ok(ApiResponse.success(null,"All Doctors Saved Successfully",200));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Something went wrong: " + e.getMessage(), 500));
+        }
+    }
+
+    @PostMapping("/onboarding")
+    public ResponseEntity<?> saveOnboarding(@RequestBody DoctorOnboardingRequest request) {
+        Doctor saved = doctorService.saveDoctorOnboarding(request);
+        return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/onboarding/bulk")
+    public ResponseEntity<?> saveBulk(@RequestBody List<DoctorOnboardingRequest> requests) {
+        doctorService.saveDoctorList(requests);
+        return ResponseEntity.ok("Bulk doctor save completed successfully");
     }
 
     @GetMapping("/getDoctorDetails")

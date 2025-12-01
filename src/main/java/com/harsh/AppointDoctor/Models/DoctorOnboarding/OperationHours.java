@@ -1,17 +1,23 @@
 package com.harsh.AppointDoctor.Models.DoctorOnboarding;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.harsh.AppointDoctor.Enums.Days;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
 @Embeddable
 public class OperationHours {
     @Enumerated(EnumType.STRING)
-    private Days days;
+    private Days days;           // e.g., MONDAY, TUESDAY, etc.
+
+//    @Column(name = "open_time")
     private String open;
-    private String close;
-    private boolean isClosedToday;
+//    @Column(name = "close_time")// opening time (e.g., "09:00 AM")
+    private String close;        // closing time (e.g., "05:00 PM")
+
+    @JsonProperty("isClosedToday")
+    private Boolean isClosedToday;  // true if clinic is closed that day
+
 }
+

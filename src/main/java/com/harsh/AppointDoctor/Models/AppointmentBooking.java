@@ -3,6 +3,7 @@ package com.harsh.AppointDoctor.Models;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.harsh.AppointDoctor.Enums.AppointmentStatus;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,8 +29,6 @@ public class AppointmentBooking {
     @Column(name = "slot")
     private String time;
 
-    private String period;
-
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @Column(name = "appointmentDate")
     private String date;
@@ -46,8 +45,8 @@ public class AppointmentBooking {
     private String selectedPatient;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "doctor_id", referencedColumnName = "id")
-    private DoctorProfile doctor;
+    @JoinColumn(name = "doctorId")
+    private Doctor doctor;
 
     @OneToOne(mappedBy = "appointmentBooking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference

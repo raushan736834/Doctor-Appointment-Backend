@@ -1,6 +1,6 @@
 package com.harsh.AppointDoctor.Models.DoctorOnboarding;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -11,6 +11,7 @@ public class DoctorProfessional {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(unique = true)
     private String medicalLicenseNumber;
     private String yearOfExp;
     private String specialization;
@@ -24,5 +25,6 @@ public class DoctorProfessional {
     @OneToOne
     @JoinColumn(name = "email", referencedColumnName = "email", nullable = false)
     @ToString.Exclude
+    @JsonIgnore
     private Doctor doctor;
 }

@@ -1,12 +1,13 @@
 package com.harsh.AppointDoctor.Services;
 
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Qualification;
 import com.harsh.AppointDoctor.Models.Specialist;
+import com.harsh.AppointDoctor.Repo.DoctorOnboardingRepo.DoctorRepo;
 import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +17,9 @@ public class DoctorProfileService {
 
     @Autowired
     private DoctorProfileRepo doctorRepository;
+
+    @Autowired
+    private DoctorRepo doctorRepo;
 
     @Autowired
     private SpecialistRepo specialistRepo;
@@ -42,8 +46,16 @@ public class DoctorProfileService {
         return doctorRepository.searchDoctor(keyword);
     }
 
+    public List<Doctor> searchDoctorDetails(String keyword) {
+        return doctorRepo.searchDoctorDetails(keyword);
+    }
+
     public DoctorProfile getDoctorBySpecializationAndId(DoctorProfile doctor) {
         return doctorRepository.findBySpecializationAndIdIgnoreCase(doctor.getSpecialization(),doctor.getId());
+    }
+
+    public Doctor getDoctorById(String doctorId) {
+        return doctorRepo.findByDoctorIdIgnoreCase(doctorId);
     }
 
     public List<String> getAllSpecialization() {

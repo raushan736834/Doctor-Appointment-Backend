@@ -1,30 +1,31 @@
 package com.harsh.AppointDoctor.Services;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
+import com.harsh.AppointDoctor.DTOs.AppointmentDTO;
+import com.harsh.AppointDoctor.DTOs.RescheduleAppointmentReqDTO;
 import com.harsh.AppointDoctor.Enums.AppointmentStatus;
 import com.harsh.AppointDoctor.Models.AppointmentBooking;
-import com.harsh.AppointDoctor.Models.DoctorProfile;
+import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.Notification;
 import com.harsh.AppointDoctor.Models.Payment;
 import com.harsh.AppointDoctor.Repo.AppointmentBookingRepo;
+import com.harsh.AppointDoctor.Repo.DoctorOnboardingRepo.DoctorRepo;
 import com.harsh.AppointDoctor.Repo.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -32,10 +33,11 @@ public class AppointmentBookingService {
 
     private final AppointmentBookingRepo appointmentRepo;
     private final MailService emailService;
-    private final DoctorProfileRepo doctorProfileRepo;
+    private final DoctorRepo doctorRepo;
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
     private final SocketIOService socketIOService;
+    private final PaymentService paymentService;
 
 //    public AppointmentBooking bookAppointment(AppointmentBooking booking) {
 //        AppointmentBooking savedBooking = appointmentRepo.save(booking);
@@ -63,12 +65,12 @@ public class AppointmentBookingService {
 //    }
 
     public AppointmentBooking bookAppointment(AppointmentBooking booking, Payment payment) {
-        if (booking.getDoctor() == null || booking.getDoctor().getId() == null) {
+        if (booking.getDoctor() == null || booking.getDoctor().getDoctorId() == null) {
             throw new IllegalArgumentException("Doctor ID is required for booking.");
         }
 
-        String doctorId = booking.getDoctor().getId();
-        DoctorProfile doctor = doctorProfileRepo.findById(doctorId)
+        String doctorId = booking.getDoctor().getDoctorId();
+        Doctor doctor = doctorRepo.findById(doctorId)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor not found with ID: " + doctorId));
 
         booking.setDoctor(doctor);
@@ -81,8 +83,8 @@ public class AppointmentBookingService {
         String emailBody = String.format(
                 "Dear %s,\n\nYour appointment with %s (%s) on %s at %s has been successfully booked.\n\nThank you!",
                 booking.getFullName(),
-                doctor.getDoctorName(),
-                doctor.getSpecialization(),
+                doctor.getFirstName() + " " + doctor.getLastName(),
+                doctor.getProfessional().getSpecialization(),
                 booking.getDate(),
                 booking.getTime()
         );
@@ -109,7 +111,7 @@ public class AppointmentBookingService {
 
     public List<String> getBookedSlots(String doctorId, String appointmentDate) {
         List<AppointmentStatus> statuses = List.of(AppointmentStatus.BOOKED, AppointmentStatus.RESCHEDULED, AppointmentStatus.COMPLETED);
-        List<AppointmentBooking> bookings = appointmentRepo.findByDoctorIdAndDateAndStatusIn(doctorId, appointmentDate,statuses);
+        List<AppointmentBooking> bookings = appointmentRepo.findByDoctor_DoctorIdAndDateAndStatusIn(doctorId, appointmentDate,statuses);
         return bookings.stream().map(AppointmentBooking::getTime).toList();
     }
 
@@ -127,7 +129,7 @@ public class AppointmentBookingService {
             notificationService.sendAppointmentCancelledNotification(
                     existingBooking.getEmail(),
                     existingBooking.getAppointmentId(),
-                    existingBooking.getDoctor().getDoctorName(),
+                    existingBooking.getDoctor().getFirstName() + " " + existingBooking.getDoctor().getLastName(),
                     existingBooking.getDate()
             );
             appointmentRepo.save(existingBooking);
@@ -152,23 +154,23 @@ public class AppointmentBookingService {
     }
 
     @Transactional
-    public ResponseEntity<?> rescheduleAppointment(AppointmentBooking booking) {
+    public ResponseEntity<?> rescheduleAppointment(RescheduleAppointmentReqDTO booking) {
         try {
             AppointmentBooking existingBooking = appointmentRepo.findById(booking.getAppointmentId())
                     .orElseThrow(()-> new IllegalArgumentException("No Appointment Found"));
             System.out.println(booking.getAppointmentId());
             String oldDate = existingBooking.getDate();
 
-            existingBooking.setDate(booking.getDate());
-            existingBooking.setTime(booking.getTime());
+            existingBooking.setDate(booking.getNewDate());
+            existingBooking.setTime(booking.getNewTimeSlot());
             existingBooking.setStatus(AppointmentStatus.RESCHEDULED);
             appointmentRepo.save(existingBooking);
             notificationService.sendAppointmentRescheduledNotification(
                     existingBooking.getEmail(),
                     existingBooking.getAppointmentId(),
-                    existingBooking.getDoctor().getDoctorName(),
+                    existingBooking.getDoctor().getFirstName() + " "+ existingBooking.getDoctor().getLastName(),
                     oldDate,
-                    booking.getDate()
+                    booking.getNewDate()
             );
             return ResponseEntity.ok("Appointment Reschedule Successfully");
         } catch (IllegalArgumentException e) {
@@ -180,73 +182,103 @@ public class AppointmentBookingService {
     }
 
     public long doctorAllAppointment(String doctorId) {
-        return appointmentRepo.countByDoctorId(doctorId);
+        return appointmentRepo.countByDoctor_DoctorId(doctorId);
     }
 
     public Page<AppointmentBooking> doctorAppointmentForToday(String doctorId, int page,
                                                               int size, List<AppointmentStatus> statuses) {
         String todayDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
-        return appointmentRepo.findByDoctorIdAndDateAndStatusIn(doctorId, todayDate, statuses, pageable);
+        return appointmentRepo.findByDoctor_DoctorIdAndDateAndStatusIn(doctorId, todayDate, statuses, pageable);
     }
 
     @Transactional
-    public void cancelAppointmentByDoctor(String appointmentId, String cancellationReason) {
-        AppointmentBooking appointment = appointmentRepo.findById(appointmentId)
+    public ResponseEntity<ApiResponse<?>> cancelAppointment(AppointmentDTO dto) {
+
+        AppointmentBooking appointment = appointmentRepo.findById(dto.getAppointmentId())
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
-        // Update appointment status with reason
-        appointment.setStatus(AppointmentStatus.CANCELLED);
-        appointment.setReason(cancellationReason);
-        appointment.setCancelledBy("DOCTOR");
+        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
+            throw new RuntimeException("Already cancelled");
+        }
+
+        appointment.setCancelledBy(dto.getCancelledBy());
+        appointment.setReason(dto.getReason());
         appointmentRepo.save(appointment);
 
-        // Send enhanced notification to patient with reason
-        String title = "Appointment Cancelled by Doctor";
-        String message = String.format("Your appointment with %s scheduled for %s has been cancelled. Reason: %s",
-                appointment.getDoctor().getDoctorName(),
-                appointment.getDate(),
-                cancellationReason);
+        Payment payment = appointment.getPayment();
 
-        Notification patientNotification = new Notification(
-                appointment.getEmail(),
-                title,
-                message,
-                AppointmentStatus.CANCELLED,
-                appointmentId
-        );
+        // ✅ CASE 1: CASH
+        if (!"ONLINE".equalsIgnoreCase(appointment.getSelectedPayment())) {
+            cancelAppointmentOnly(appointment,dto.getCancelledBy(),dto.getReason());
+            return ResponseEntity.ok(ApiResponse.success(null, "APPOINTMENT CANCELLED", 200));
+        }
 
-        notificationRepository.save(patientNotification);
-        socketIOService.sendNotificationToUser(appointment.getEmail(), patientNotification);
+        // ✅ CASE 2: ONLINE → DO REFUND FIRST
+        boolean refundResult = paymentService.initiateRefund(payment);
+
+        if (!refundResult) {
+            throw new RuntimeException("Refund failed. Appointment not cancelled.");
+        }
+
+        // ✅ Now safe to cancel
+        try {
+            cancelAppointmentOnly(appointment, dto.getCancelledBy() , dto.getReason());
+
+            return ResponseEntity.ok(ApiResponse.success(Map.of("CANCELLED", "REFUND_INITIATED"),
+                    "APPOINTMENT CANCELLED",200));
+        } catch (Exception e) {
+            appointment.setStatus(AppointmentStatus.CANCEL_PENDING);
+            appointmentRepo.save(appointment);
+            return ResponseEntity.ok(ApiResponse.success(Map.of("CANCEL_PENDING", "REFUND_INITIATED"),
+                    "APPOINTMENT CANCEL PENDING",500));
+        }
     }
 
     // Method for patient to cancel appointment
     @Transactional
-    public void cancelAppointmentByPatient(String  appointmentId) {
-        AppointmentBooking appointment = appointmentRepo.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
-        System.out.println(appointment.getDoctor());
-        // Update appointment status
+    public void cancelAppointmentOnly(AppointmentBooking appointment, String cancelledBy, String cancellationReason) {
         appointment.setStatus(AppointmentStatus.CANCELLED);
-        appointment.setCancelledBy("PATIENT");
         appointmentRepo.save(appointment);
 
-        // Send notification to doctor
-        String doctorMessage = String.format("Patient %s has cancelled the appointment scheduled for %s.",
-                appointment.getFullName(),
-                appointment.getDate());
+        if("PATIENT".equalsIgnoreCase(cancelledBy)) {
+            // Send notification to doctor
+            String messageForDoctor = String.format("Patient %s has cancelled the appointment scheduled for %s.",
+                    appointment.getFullName(),
+                    appointment.getDate());
 
-        if(appointment.getDoctor().getEmail() != null){
-            Notification doctorNotification = new Notification(
-                    appointment.getDoctor().getEmail(),
+            sendNotification(appointment.getDoctor().getEmail(),
                     "Appointment Cancelled by Patient",
-                    doctorMessage,
+                    messageForDoctor,
                     AppointmentStatus.CANCELLED,
-                    appointmentId
+                    appointment.getAppointmentId()
             );
+            // Send notification to patient
+        } else if("DOCTOR".equalsIgnoreCase(cancelledBy)) {
 
-            notificationRepository.save(doctorNotification);
-            socketIOService.sendNotificationToUser(appointment.getDoctor().getEmail(), doctorNotification);
+            String title = "Appointment Cancelled by Doctor";
+
+            String messageForPatient = String.format("Your appointment with %s scheduled for %s has been cancelled. Reason: %s",
+                    appointment.getDoctor().getFirstName() + " "+ appointment.getDoctor().getLastName(),
+                    appointment.getDate(),
+                    cancellationReason);
+            sendNotification(appointment.getEmail(),
+                    title,
+                    messageForPatient,
+                    AppointmentStatus.CANCELLED,
+                    appointment.getAppointmentId()
+            );
+        } else {
+            throw new IllegalArgumentException("Invalid cancelledBy value. Use 'PATIENT' or 'DOCTOR'.");
+        }
+    }
+
+    public void sendNotification(String email, String title, String message, AppointmentStatus status, String appointmentId) {
+        if(email != null)
+        {
+            Notification notification = new Notification(email, title, message, status, appointmentId);
+            notificationRepository.save(notification);
+            socketIOService.sendNotificationToUser(email, notification);
         }
     }
 }
