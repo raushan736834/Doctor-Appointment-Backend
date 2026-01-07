@@ -1,5 +1,6 @@
 package com.harsh.AppointDoctor.Controllers;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.DTOs.DoctorSearchDTO;
 import com.harsh.AppointDoctor.Models.AppointmentBooking;
@@ -11,34 +12,42 @@ import com.harsh.AppointDoctor.Repo.SpecialistRepo;
 import com.harsh.AppointDoctor.Services.AppointmentBookingService;
 import com.harsh.AppointDoctor.Services.ContactUsService;
 import com.harsh.AppointDoctor.Services.DoctorProfileService;
+import com.harsh.AppointDoctor.Services.RedisService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
 @CrossOrigin
+@RequiredArgsConstructor
 @RequestMapping("/api/public/")
 public class PublicController {
-    @Autowired
-    private AppointmentBookingService appointmentService;
 
-    @Autowired
-    private DoctorProfileService doctorService;
-
-    @Autowired
-    private ContactUsService contactUsService;
-
-    @Autowired
-    private SpecialistRepo repo;
+    private final AppointmentBookingService appointmentService;
+    private final RedisService redisService;
+    private final DoctorProfileService doctorService;
+    private final ContactUsService contactUsService;
+    private final SpecialistRepo repo;
 
     @GetMapping("/getSpecialist")
-    public ResponseEntity<?> getAllSpecialist(){
+    public ResponseEntity<?> getAllSpecialist() {
+        List<Specialist> specialists =
+                redisService.get("all_specialist", new TypeReference<List<Specialist>>() {});
+
+        if (specialists != null) {
+            return ResponseEntity.ok(specialists);
+        }
+
         List<Specialist> data = repo.findAllByOrderBySpecialistAsc();
-        return new ResponseEntity<>(data, HttpStatus.OK);
+        redisService.set("all_specialist", data, 300L);
+        return ResponseEntity.ok(data);
     }
+
 
 //    @GetMapping("/search")
 //    public ResponseEntity<List<DoctorProfile>> getDoctorByKeyword(@RequestParam String keyword){

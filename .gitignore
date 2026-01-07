@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 .env
+AI_Agent_Doctor_Appointment_Requirements.pdf
+run_agent.bat
+ai-agent/

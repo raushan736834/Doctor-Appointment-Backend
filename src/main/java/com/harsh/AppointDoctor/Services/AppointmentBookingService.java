@@ -36,34 +36,36 @@ public class AppointmentBookingService {
     private final DoctorRepo doctorRepo;
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
-    private final SocketIOService socketIOService;
+    private final StompNotificationService stompNotificationService;
     private final PaymentService paymentService;
 
-//    public AppointmentBooking bookAppointment(AppointmentBooking booking) {
-//        AppointmentBooking savedBooking = appointmentRepo.save(booking);
-//        String emailBody = String.format(
-//                "Dear %s,\n\nYour appointment with Dr. %s (%s) on %s at %s has been successfully booked.\n\nThank you!",
-//                booking.getFullName(),
-//                doctorData.getDoctorName(),
-//                doctorData.getSpecialization(),
-//                booking.getDate(),
-//                booking.getTime()
-//        );
-//         Send confirmation email
-//        System.out.println(booking.getEmail());
-//        emailService.sendSimpleEmail(
-//                booking.getEmail(),
-//                "Appointment Confirmation",
-//                emailBody
-//        );
-//        emailService.sendSimpleEmail(
-//                booking.getPatientEmail(),
-//                "Appointment Confirmation",
-//                emailBody
-//        );
-//        return savedBooking;
-//    }
+    // public AppointmentBooking bookAppointment(AppointmentBooking booking) {
+    // AppointmentBooking savedBooking = appointmentRepo.save(booking);
+    // String emailBody = String.format(
+    // "Dear %s,\n\nYour appointment with Dr. %s (%s) on %s at %s has been
+    // successfully booked.\n\nThank you!",
+    // booking.getFullName(),
+    // doctorData.getDoctorName(),
+    // doctorData.getSpecialization(),
+    // booking.getDate(),
+    // booking.getTime()
+    // );
+    // Send confirmation email
+    // System.out.println(booking.getEmail());
+    // emailService.sendSimpleEmail(
+    // booking.getEmail(),
+    // "Appointment Confirmation",
+    // emailBody
+    // );
+    // emailService.sendSimpleEmail(
+    // booking.getPatientEmail(),
+    // "Appointment Confirmation",
+    // emailBody
+    // );
+    // return savedBooking;
+    // }
 
+    @Transactional
     public AppointmentBooking bookAppointment(AppointmentBooking booking, Payment payment) {
         if (booking.getDoctor() == null || booking.getDoctor().getDoctorId() == null) {
             throw new IllegalArgumentException("Doctor ID is required for booking.");
@@ -86,32 +88,41 @@ public class AppointmentBookingService {
                 doctor.getFirstName() + " " + doctor.getLastName(),
                 doctor.getProfessional().getSpecialization(),
                 booking.getDate(),
-                booking.getTime()
-        );
-//        Send confirmation email
-        System.out.println(booking.getEmail());
+                booking.getTime());
+
+        // Send confirmation email
         emailService.sendSimpleEmail(
                 booking.getEmail(),
                 "Appointment Confirmation",
-                emailBody
-        );
+                emailBody);
         emailService.sendSimpleEmail(
                 booking.getPatientEmail(),
                 "Appointment Confirmation",
-                emailBody
-        );
+                emailBody);
+
+//        send notification to doctor
+        String messageForDoctor = String.format("Patient %s has Booked the appointment scheduled for %s.",
+                booking.getFullName(),
+                booking.getDate());
+
+        sendNotification(booking.getDoctor().getEmail(),
+                "Appointment Booked by Patient",
+                messageForDoctor,
+                AppointmentStatus.BOOKED,
+                booking.getAppointmentId());
 
         return appointmentRepo.save(booking);
     }
-
 
     public List<AppointmentBooking> getAppointmentsByEmail(String email) {
         return appointmentRepo.findByEmail(email);
     }
 
     public List<String> getBookedSlots(String doctorId, String appointmentDate) {
-        List<AppointmentStatus> statuses = List.of(AppointmentStatus.BOOKED, AppointmentStatus.RESCHEDULED, AppointmentStatus.COMPLETED);
-        List<AppointmentBooking> bookings = appointmentRepo.findByDoctor_DoctorIdAndDateAndStatusIn(doctorId, appointmentDate,statuses);
+        List<AppointmentStatus> statuses = List.of(AppointmentStatus.BOOKED, AppointmentStatus.RESCHEDULED,
+                AppointmentStatus.COMPLETED);
+        List<AppointmentBooking> bookings = appointmentRepo.findByDoctor_DoctorIdAndDateAndStatusIn(doctorId,
+                appointmentDate, statuses);
         return bookings.stream().map(AppointmentBooking::getTime).toList();
     }
 
@@ -130,12 +141,11 @@ public class AppointmentBookingService {
                     existingBooking.getEmail(),
                     existingBooking.getAppointmentId(),
                     existingBooking.getDoctor().getFirstName() + " " + existingBooking.getDoctor().getLastName(),
-                    existingBooking.getDate()
-            );
+                    existingBooking.getDate());
             appointmentRepo.save(existingBooking);
             return ResponseEntity.ok("Appointment cancelled successfully.");
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             return new ResponseEntity<>("An error occurred while cancelling the appointment: "
                     + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -145,8 +155,7 @@ public class AppointmentBookingService {
     public List<AppointmentBooking> getActiveOrFutureAppointments(String email) {
         List<AppointmentStatus> activeStatuses = Arrays.asList(
                 AppointmentStatus.BOOKED,
-                AppointmentStatus.RESCHEDULED
-        );
+                AppointmentStatus.RESCHEDULED);
 
         String today = LocalDate.now().toString();
 
@@ -157,7 +166,7 @@ public class AppointmentBookingService {
     public ResponseEntity<?> rescheduleAppointment(RescheduleAppointmentReqDTO booking) {
         try {
             AppointmentBooking existingBooking = appointmentRepo.findById(booking.getAppointmentId())
-                    .orElseThrow(()-> new IllegalArgumentException("No Appointment Found"));
+                    .orElseThrow(() -> new IllegalArgumentException("No Appointment Found"));
             System.out.println(booking.getAppointmentId());
             String oldDate = existingBooking.getDate();
 
@@ -168,14 +177,13 @@ public class AppointmentBookingService {
             notificationService.sendAppointmentRescheduledNotification(
                     existingBooking.getEmail(),
                     existingBooking.getAppointmentId(),
-                    existingBooking.getDoctor().getFirstName() + " "+ existingBooking.getDoctor().getLastName(),
+                    existingBooking.getDoctor().getFirstName() + " " + existingBooking.getDoctor().getLastName(),
                     oldDate,
-                    booking.getNewDate()
-            );
+                    booking.getNewDate());
             return ResponseEntity.ok("Appointment Reschedule Successfully");
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
-        } catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
             return new ResponseEntity<>("An error occurred while Rescheduling the appointment: "
                     + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -186,7 +194,7 @@ public class AppointmentBookingService {
     }
 
     public Page<AppointmentBooking> doctorAppointmentForToday(String doctorId, int page,
-                                                              int size, List<AppointmentStatus> statuses) {
+            int size, List<AppointmentStatus> statuses) {
         String todayDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
         return appointmentRepo.findByDoctor_DoctorIdAndDateAndStatusIn(doctorId, todayDate, statuses, pageable);
@@ -210,7 +218,7 @@ public class AppointmentBookingService {
 
         // ✅ CASE 1: CASH
         if (!"ONLINE".equalsIgnoreCase(appointment.getSelectedPayment())) {
-            cancelAppointmentOnly(appointment,dto.getCancelledBy(),dto.getReason());
+            cancelAppointmentOnly(appointment, dto.getCancelledBy(), dto.getReason());
             return ResponseEntity.ok(ApiResponse.success(null, "APPOINTMENT CANCELLED", 200));
         }
 
@@ -223,15 +231,15 @@ public class AppointmentBookingService {
 
         // ✅ Now safe to cancel
         try {
-            cancelAppointmentOnly(appointment, dto.getCancelledBy() , dto.getReason());
+            cancelAppointmentOnly(appointment, dto.getCancelledBy(), dto.getReason());
 
             return ResponseEntity.ok(ApiResponse.success(Map.of("CANCELLED", "REFUND_INITIATED"),
-                    "APPOINTMENT CANCELLED",200));
+                    "APPOINTMENT CANCELLED", 200));
         } catch (Exception e) {
             appointment.setStatus(AppointmentStatus.CANCEL_PENDING);
             appointmentRepo.save(appointment);
             return ResponseEntity.ok(ApiResponse.success(Map.of("CANCEL_PENDING", "REFUND_INITIATED"),
-                    "APPOINTMENT CANCEL PENDING",500));
+                    "APPOINTMENT CANCEL PENDING", 500));
         }
     }
 
@@ -241,7 +249,7 @@ public class AppointmentBookingService {
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepo.save(appointment);
 
-        if("PATIENT".equalsIgnoreCase(cancelledBy)) {
+        if ("PATIENT".equalsIgnoreCase(cancelledBy)) {
             // Send notification to doctor
             String messageForDoctor = String.format("Patient %s has cancelled the appointment scheduled for %s.",
                     appointment.getFullName(),
@@ -251,34 +259,33 @@ public class AppointmentBookingService {
                     "Appointment Cancelled by Patient",
                     messageForDoctor,
                     AppointmentStatus.CANCELLED,
-                    appointment.getAppointmentId()
-            );
+                    appointment.getAppointmentId());
             // Send notification to patient
-        } else if("DOCTOR".equalsIgnoreCase(cancelledBy)) {
+        } else if ("DOCTOR".equalsIgnoreCase(cancelledBy)) {
 
             String title = "Appointment Cancelled by Doctor";
 
-            String messageForPatient = String.format("Your appointment with %s scheduled for %s has been cancelled. Reason: %s",
-                    appointment.getDoctor().getFirstName() + " "+ appointment.getDoctor().getLastName(),
+            String messageForPatient = String.format(
+                    "Your appointment with %s scheduled for %s has been cancelled. Reason: %s",
+                    appointment.getDoctor().getFirstName() + " " + appointment.getDoctor().getLastName(),
                     appointment.getDate(),
                     cancellationReason);
             sendNotification(appointment.getEmail(),
                     title,
                     messageForPatient,
                     AppointmentStatus.CANCELLED,
-                    appointment.getAppointmentId()
-            );
+                    appointment.getAppointmentId());
         } else {
             throw new IllegalArgumentException("Invalid cancelledBy value. Use 'PATIENT' or 'DOCTOR'.");
         }
     }
 
-    public void sendNotification(String email, String title, String message, AppointmentStatus status, String appointmentId) {
-        if(email != null)
-        {
+    public void sendNotification(String email, String title, String message, AppointmentStatus status,
+            String appointmentId) {
+        if (email != null) {
             Notification notification = new Notification(email, title, message, status, appointmentId);
             notificationRepository.save(notification);
-            socketIOService.sendNotificationToUser(email, notification);
+            stompNotificationService.sendNotificationToUser(email, notification);
         }
     }
 }

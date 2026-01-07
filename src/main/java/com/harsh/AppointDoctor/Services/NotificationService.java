@@ -1,12 +1,10 @@
 package com.harsh.AppointDoctor.Services;
 
-
 import com.harsh.AppointDoctor.Enums.AppointmentStatus;
 import com.harsh.AppointDoctor.Models.Notification;
 import com.harsh.AppointDoctor.Repo.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +14,10 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final SocketIOService socketIOService;
+    private final StompNotificationService stompNotificationService;
 
     public void sendAppointmentCancelledNotification(String userEmail, String appointmentId,
-                                                     String doctorName, String appointmentDate) {
+            String doctorName, String appointmentDate) {
         String title = "Appointment Cancelled";
         String message = String.format("Your appointment with %s scheduled for %s has been cancelled.",
                 doctorName, appointmentDate);
@@ -30,12 +28,12 @@ public class NotificationService {
         // Save to database
         notification = notificationRepository.save(notification);
 
-        // Send real-time notification via Socket.io
-        socketIOService.sendNotificationToUser(userEmail, notification);
+        // Send real-time notification via STOMP
+        stompNotificationService.sendNotificationToUser(userEmail, notification);
     }
 
     public void sendAppointmentCancelledNotificationToDoctor(String doctorEmail, String appointmentId,
-                                                             String patientName, String appointmentDate) {
+            String patientName, String appointmentDate) {
         String title = "Appointment Cancelled";
         String message = String.format("Appointment with patient %s scheduled for %s has been cancelled.",
                 patientName, appointmentDate);
@@ -46,12 +44,12 @@ public class NotificationService {
         // Save to database
         notification = notificationRepository.save(notification);
 
-        // Send real-time notification via Socket.io
-        socketIOService.sendNotificationToUser(doctorEmail, notification);
+        // Send real-time notification via STOMP
+        stompNotificationService.sendNotificationToUser(doctorEmail, notification);
     }
 
     public void sendAppointmentRescheduledNotification(String userEmail, String appointmentId,
-                                                       String doctorName, String oldDate, String newDate) {
+            String doctorName, String oldDate, String newDate) {
         String title = "Appointment Rescheduled";
         String message = String.format("Your appointment with Dr. %s has been rescheduled from %s to %s.",
                 doctorName, oldDate, newDate);
@@ -62,12 +60,12 @@ public class NotificationService {
         // Save to database
         notification = notificationRepository.save(notification);
 
-        // Send real-time notification via Socket.io
-        socketIOService.sendNotificationToUser(userEmail, notification);
+        // Send real-time notification via STOMP
+        stompNotificationService.sendNotificationToUser(userEmail, notification);
     }
 
     public void sendAppointmentRescheduledNotificationToDoctor(String doctorEmail, String appointmentId,
-                                                               String patientName, String oldDate, String newDate) {
+            String patientName, String oldDate, String newDate) {
         String title = "Appointment Rescheduled";
         String message = String.format("Appointment with patient %s has been rescheduled from %s to %s.",
                 patientName, oldDate, newDate);
@@ -78,14 +76,14 @@ public class NotificationService {
         // Save to database
         notification = notificationRepository.save(notification);
 
-        // Send real-time notification via Socket.io
-        socketIOService.sendNotificationToUser(doctorEmail, notification);
+        // Send real-time notification via STOMP
+        stompNotificationService.sendNotificationToUser(doctorEmail, notification);
     }
 
     // Combined method to send cancellation notifications to both parties
     public void sendAppointmentCancelledNotifications(String patientEmail, String doctorEmail,
-                                                      String  appointmentId, String doctorName,
-                                                      String patientName, String appointmentDate) {
+            String appointmentId, String doctorName,
+            String patientName, String appointmentDate) {
         // Send notification to patient
         sendAppointmentCancelledNotification(patientEmail, appointmentId, doctorName, appointmentDate);
 
@@ -95,8 +93,8 @@ public class NotificationService {
 
     // Combined method to send rescheduling notifications to both parties
     public void sendAppointmentRescheduledNotifications(String patientEmail, String doctorEmail,
-                                                        String appointmentId, String doctorName,
-                                                        String patientName, String oldDate, String newDate) {
+            String appointmentId, String doctorName,
+            String patientName, String oldDate, String newDate) {
         // Send notification to patient
         sendAppointmentRescheduledNotification(patientEmail, appointmentId, doctorName, oldDate, newDate);
 

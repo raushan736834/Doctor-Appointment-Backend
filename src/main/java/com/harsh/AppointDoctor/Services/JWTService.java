@@ -29,6 +29,7 @@ public class JWTService {
     private final Set<String> activeRefreshTokens = ConcurrentHashMap.newKeySet();
 
     public String generateAccessToken(String email) {
+        System.out.println(secretKey);
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "access");
 
@@ -126,12 +127,13 @@ public class JWTService {
     }
 
     public void invalidateAllRefreshTokensForUser(String email) {
-        // In a real implementation, you'd query the database for all user's refresh tokens
+        // In a real implementation, you'd query the database for all user's refresh
+        // tokens
         // For now, this is a placeholder
         activeRefreshTokens.clear();
     }
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 

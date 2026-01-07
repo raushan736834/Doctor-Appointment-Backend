@@ -117,13 +117,9 @@ public class AuthService {
         return savedUser;
     }
 
-    public ResponseEntity<?> userExistence(String email) {
+    public boolean userExistence(String email) {
         Users user = repo.findByEmail(email);
-        if (user != null) {
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
-        }
+        return user != null;
     }
 
 //    public LoginResult verify(LoginRequest loginRequest) {

@@ -1,6 +1,7 @@
 package com.harsh.AppointDoctor.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,6 +27,10 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Value("${FRONTEND_URL}")
+    private String FRONTEND_URL;
+
     @Autowired
     private JwtFilter jwtFilter;
 
@@ -40,7 +45,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:*",
-                "https://doctor-appointment-nine-puce.vercel.app"
+                FRONTEND_URL
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
@@ -59,7 +64,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/auth/**","/api/public/**","/document","/api/notifications/**").permitAll()
+                        .requestMatchers("/ws/**","/auth/**","/api/public/**","/document","/api/notifications/**").permitAll()
 //                                 Role-based restrictions
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/user/**","/api/user/**","/api/payment").hasAnyRole("USER", "ADMIN") // both roles can access

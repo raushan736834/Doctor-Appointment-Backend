@@ -77,8 +77,8 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> register(@RequestBody Users user) {
         try {
-            ResponseEntity<?> emailValidationResponse = service.userExistence(user.getEmail());
-            if (emailValidationResponse.getStatusCode() == HttpStatus.OK) {
+            boolean emailValidationResponse = service.userExistence(user.getEmail());
+            if (emailValidationResponse) {
                 return new ResponseEntity<>("Email already in use", HttpStatus.CONFLICT);
             }
             // Add the user
@@ -152,8 +152,8 @@ public class AuthController {
 
     @PostMapping("/forget")
     public ResponseEntity<?> forgetPassword(@RequestBody Users user){
-        ResponseEntity<?> emailValidationResponse = service.userExistence(user.getEmail());
-        if (emailValidationResponse.getStatusCode() == HttpStatus.OK) {
+        boolean emailValidationResponse = service.userExistence(user.getEmail());
+        if (emailValidationResponse) {
             int otp = generateSixDigitOtp();
             mailService.sendSimpleEmail(user.getEmail(), "Appoint Doctor - Recover Your Account",
                     "Otp for recovering account: "+ otp);
