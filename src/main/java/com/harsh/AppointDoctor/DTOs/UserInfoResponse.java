@@ -12,8 +12,6 @@ import java.util.List;
 public class UserInfoResponse {
     private String email;
     private String fullname;
-    private List<Role> roles;         // or List<String> if you prefer
-    private String doctorId;      // optional
-    private String  accountStatus;
+    private List<Role> roles;
     private String accessToken;
 }

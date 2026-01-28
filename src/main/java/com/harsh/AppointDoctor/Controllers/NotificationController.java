@@ -1,5 +1,6 @@
 package com.harsh.AppointDoctor.Controllers;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.Models.Notification;
 import com.harsh.AppointDoctor.Services.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -16,25 +17,25 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping("/user/{userEmail}")
-    public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable String userEmail) {
+    public ResponseEntity<ApiResponse<List<Notification>>> getUserNotifications(@PathVariable String userEmail) {
         List<Notification> notifications = notificationService.getUserNotifications(userEmail);
-        return ResponseEntity.ok(notifications);
+        return ResponseEntity.ok(ApiResponse.success(notifications,"",200));
     }
 
     @GetMapping("/user/{userEmail}/unread-count")
-    public ResponseEntity<Long> getUnreadCount(@PathVariable String userEmail) {
+    public ResponseEntity<ApiResponse<Long>> getUnreadCount(@PathVariable String userEmail) {
         long count = notificationService.getUnreadCount(userEmail);
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(ApiResponse.success(count,"",200));
     }
 
     @PutMapping("/{notificationId}/read")
-    public ResponseEntity<Void> markAsRead(@PathVariable Long notificationId) {
+    public ResponseEntity<?> markAsRead(@PathVariable Long notificationId) {
         notificationService.markAsRead(notificationId);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/user/{userEmail}/mark-all-read")
-    public ResponseEntity<Void> markAllAsRead(@PathVariable String userEmail) {
+    public ResponseEntity<?> markAllAsRead(@PathVariable String userEmail) {
         notificationService.markAllAsRead(userEmail);
         return ResponseEntity.ok().build();
     }

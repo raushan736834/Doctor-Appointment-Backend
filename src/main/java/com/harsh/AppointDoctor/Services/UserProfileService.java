@@ -1,9 +1,11 @@
 package com.harsh.AppointDoctor.Services;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.Models.Users;
 import com.harsh.AppointDoctor.Models.UsersProfile;
 import com.harsh.AppointDoctor.Repo.UserProfileRepo;
 import com.harsh.AppointDoctor.Repo.UserRepo;
+import org.hibernate.metamodel.internal.AbstractPojoInstantiator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +30,7 @@ public class UserProfileService {
         }
     }
 
-    public ResponseEntity<?> updateUserProfile(UsersProfile profile) {
+    public ResponseEntity<ApiResponse<?>> updateUserProfile(UsersProfile profile) {
         UsersProfile existingProfile = userProfileRepo.findByEmail(profile.getEmail());
         if (existingProfile != null) {
             existingProfile.setFullName(profile.getFullName());
@@ -40,18 +42,18 @@ public class UserProfileService {
             existingProfile.setState(profile.getState());
             existingProfile.setPincode(profile.getPincode());
             UsersProfile updatedProfile = userProfileRepo.save(existingProfile);
-            return new ResponseEntity<>("Profile updated successfully", HttpStatus.OK);
+            return new ResponseEntity<>(ApiResponse.success(null,"Profile updated successfully",200), HttpStatus.OK);
         } else {
-            return new ResponseEntity<>("Profile not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(ApiResponse.error("Profile not found",404), HttpStatus.NOT_FOUND);
         }
     }
 
-    public ResponseEntity<?> getUserById(String email) {
+    public ResponseEntity<ApiResponse<?>> getUserById(String email) {
         UsersProfile userProfile = userProfileRepo.findByEmail(email);
         Users user = repo.findByEmail(email);        
         if (user != null && userProfile != null){
 //            String fullname = userProfile.getFullName();
-            return new ResponseEntity<>(userProfile,HttpStatus.OK);
+            return new ResponseEntity<>(ApiResponse.success(userProfile,"",200),HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }

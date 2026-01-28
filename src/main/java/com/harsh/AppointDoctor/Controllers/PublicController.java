@@ -2,24 +2,24 @@ package com.harsh.AppointDoctor.Controllers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
-import com.harsh.AppointDoctor.DTOs.DoctorSearchDTO;
-import com.harsh.AppointDoctor.Models.AppointmentBooking;
+import com.harsh.AppointDoctor.DTOs.DoctorDTOs.OperatingHoursResponse;
 import com.harsh.AppointDoctor.Models.ContactUs;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
-import com.harsh.AppointDoctor.Services.AppointmentBookingService;
+import com.harsh.AppointDoctor.Services.UserAppointmentService;
 import com.harsh.AppointDoctor.Services.ContactUsService;
 import com.harsh.AppointDoctor.Services.DoctorProfileService;
 import com.harsh.AppointDoctor.Services.RedisService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @RestController
@@ -28,24 +28,24 @@ import java.util.List;
 @RequestMapping("/api/public/")
 public class PublicController {
 
-    private final AppointmentBookingService appointmentService;
+    private final UserAppointmentService appointmentService;
     private final RedisService redisService;
     private final DoctorProfileService doctorService;
     private final ContactUsService contactUsService;
     private final SpecialistRepo repo;
 
     @GetMapping("/getSpecialist")
-    public ResponseEntity<?> getAllSpecialist() {
+    public ResponseEntity<ApiResponse<?>> getAllSpecialist() {
         List<Specialist> specialists =
                 redisService.get("all_specialist", new TypeReference<List<Specialist>>() {});
 
         if (specialists != null) {
-            return ResponseEntity.ok(specialists);
+            return ResponseEntity.ok(ApiResponse.success(specialists,"",200));
         }
 
         List<Specialist> data = repo.findAllByOrderBySpecialistAsc();
         redisService.set("all_specialist", data, 300L);
-        return ResponseEntity.ok(data);
+        return ResponseEntity.ok(ApiResponse.success(data,"",200));
     }
 
 
@@ -67,29 +67,30 @@ public class PublicController {
     }
 
     @GetMapping("/searchByCityAndSpecialist")
-    public ResponseEntity<?> getDoctorByCityAndSpecialist(@RequestParam String city, @RequestParam String specialist){
+    public ResponseEntity<ApiResponse<?>> getDoctorByCityAndSpecialist(@RequestParam String city, @RequestParam String specialist){
         try {
             List<DoctorProfile> doctors = doctorService.searchDoctorsByCityAndSpecialist(city, specialist);
-            return ResponseEntity.ok(doctors);
+            return ResponseEntity.ok(ApiResponse.success(doctors,"",200));
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(ApiResponse.error(e.getMessage(),500),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
 
-    @PostMapping("/booked-slots")
-    public ResponseEntity<List<String>> getBookedSlots(@RequestBody AppointmentBooking booking) {
-        List<String> bookedSlots = appointmentService.getBookedSlots(booking.getDoctor().getDoctorId(),
-                booking.getDate());
-        return ResponseEntity.ok(bookedSlots);
+    @GetMapping("/booked-slots")
+    public ResponseEntity<ApiResponse<List<LocalTime>>> getBookedSlots(@RequestParam String doctorId,
+                                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                                          LocalDate date) {
+        List<LocalTime> bookedSlots = appointmentService.getBookedSlots(doctorId,date);
+        return ResponseEntity.ok(ApiResponse.success(bookedSlots,"",200));
     }
 
     @PostMapping("/contact-us")
-    public ResponseEntity<?> contactUs(@RequestBody ContactUs details){
+    public ResponseEntity<ApiResponse<?>> contactUs(@RequestBody ContactUs details){
         try{
             details = contactUsService.contactUs(details);
             if (details != null){
-                return new ResponseEntity<>("Message Received",HttpStatus.ACCEPTED);
+                return new ResponseEntity<>(ApiResponse.success(null,"Message Received",200),HttpStatus.ACCEPTED);
             }
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
@@ -97,31 +98,30 @@ public class PublicController {
         }
     }
 
-//    @PostMapping("/getDoctor")
-//    public ResponseEntity<?> getDoctorBySpecializationAndId(@RequestBody DoctorProfile doctor){
-//        DoctorProfile doctorProfile = doctorService.getDoctorBySpecializationAndId(doctor);
-//        if (doctorProfile != null) {
-//            return new ResponseEntity<>(doctorProfile, HttpStatus.OK);
-//        } else {
-//            return new ResponseEntity<>("Doctor not found", HttpStatus.NOT_FOUND);
-//        }
-//    }
-
-    @PostMapping("/getDoctor")
-    public ResponseEntity<?> getDoctorDetails(@RequestBody DoctorSearchDTO doctor){
-        Doctor doctorDetails = doctorService.getDoctorById(doctor.getDoctorId());
+    @GetMapping("/getDoctor/{doctorId}")
+    public ResponseEntity<ApiResponse<?>> getDoctorDetailById(@PathVariable String doctorId){
+        Doctor doctorDetails = doctorService.getDoctorById(doctorId);
         if (doctorDetails != null) {
-            return new ResponseEntity<>(doctorDetails, HttpStatus.OK);
+            return new ResponseEntity<>(ApiResponse.success(doctorDetails,"",200), HttpStatus.OK);
         } else {
-            return new ResponseEntity<>("Doctor not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(ApiResponse.error("Doctor not found",404), HttpStatus.NOT_FOUND);
         }
     }
 
     @GetMapping("/cities")
-    public ResponseEntity<?> getCities(){
+    public ResponseEntity<ApiResponse<?>> getCities(){
         try {
             List<String> cities = doctorService.getDistinctCities();
-            return new ResponseEntity<>(cities,HttpStatus.OK);
+            return new ResponseEntity<>(ApiResponse.success(cities,"",200),HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @GetMapping("/operatingHours/{doctorId}")
+    public ResponseEntity<ApiResponse<?>> getOperatingHours(@PathVariable String doctorId){
+        try {
+            List<OperatingHoursResponse> hours = doctorService.getOperatingHours(doctorId);
+            return new ResponseEntity<>(ApiResponse.success(hours,"",200),HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }

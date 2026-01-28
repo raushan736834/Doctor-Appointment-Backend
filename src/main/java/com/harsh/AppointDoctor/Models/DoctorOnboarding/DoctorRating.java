@@ -1,5 +1,7 @@
-package com.harsh.AppointDoctor.Models;
+package com.harsh.AppointDoctor.Models.DoctorOnboarding;
 
+import com.harsh.AppointDoctor.Models.AppointmentBooking;
+import com.harsh.AppointDoctor.Models.Users;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,41 +10,34 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "appointment_review")
+@Table(
+        name = "doctor_rating",
+        uniqueConstraints = @UniqueConstraint(columnNames = "appointment_id")
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AppointmentReview {
+public class DoctorRating {
 
     @Id
-    @Column(columnDefinition = "BINARY(16)")
-    private UUID reviewId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @PrePersist
-    public void generateId() {
-        if (this.reviewId == null) {
-            this.reviewId = UUID.randomUUID();
-        }
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "doctor_id")
+    private Doctor doctor;
 
-    @OneToOne
-    @JoinColumn(name = "appointment_id", nullable = false, columnDefinition = "BINARY(16)")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_email")
+    private Users user;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "appointment_id")
     private AppointmentBooking appointment;
 
-    @Column(nullable = false)
-    private Integer rating; // 1-5
-
-    @Column(length = 1000)
-    private String reviewText;
-
-    @Column(nullable = false)
+    private int rating;
+    private String review;
+    private boolean anonymous;
     private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-
-    @Column(nullable = false)
-    private Boolean isEdited = false;
 }
+

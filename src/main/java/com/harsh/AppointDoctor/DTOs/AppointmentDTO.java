@@ -3,13 +3,12 @@ package com.harsh.AppointDoctor.DTOs;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 public class AppointmentDTO {
-    private String appointmentId;
+    private UUID appointmentId;
     private String reason;
     private String cancelledBy;
-    private String newDate;
-    private String newTime;
-    private String newPeriod;
 }

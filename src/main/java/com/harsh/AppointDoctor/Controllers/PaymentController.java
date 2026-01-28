@@ -1,5 +1,6 @@
 package com.harsh.AppointDoctor.Controllers;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.Services.PaymentService;
 import com.razorpay.Order;
 import com.razorpay.RazorpayException;
@@ -30,7 +31,7 @@ public class PaymentController {
     private String razorpaySecret;
 
     @PostMapping("/create-order")
-    public ResponseEntity<Map<String, Object>> createOrder(@RequestBody Map<String, Object> req) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createOrder(@RequestBody Map<String, Object> req) {
         try {
             Order order = paymentService.createOrder((Integer) req.get("amount"));
             Map<String, Object> res = Map.of(
@@ -39,14 +40,14 @@ public class PaymentController {
                     "currency", order.get("currency"),
                     "key", paymentService.getRazorpayKeyId()
             );
-            return ResponseEntity.ok(res);
+            return ResponseEntity.ok(ApiResponse.success(res,"",200));
         } catch (RazorpayException e) {
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error( e.getMessage(),500));
         }
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<Map<String, String>> verify(@RequestBody Map<String, String> req) {
+    public ResponseEntity<ApiResponse<?>> verify(@RequestBody Map<String, String> req) {
         boolean isValid = paymentService.verifySignature(
                 req.get("razorpay_order_id"),
                 req.get("razorpay_payment_id"),
@@ -54,12 +55,12 @@ public class PaymentController {
         );
 
         return isValid
-                ? ResponseEntity.ok(Map.of("status", "success"))
-                : ResponseEntity.status(400).body(Map.of("status", "failure"));
+                ? ResponseEntity.ok(ApiResponse.success( null,"success",200))
+                : ResponseEntity.status(400).body(ApiResponse.error( "failure",400));
     }
 
     @PostMapping("/refund")
-    public ResponseEntity<?> refundPayment(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<ApiResponse<?>> refundPayment(@RequestBody Map<String, String> payload) {
         String payId = payload.get("payId");
         String auth = Base64.getEncoder().encodeToString((razorpayKeyId+":"+razorpaySecret).getBytes());
 
@@ -76,9 +77,9 @@ public class PaymentController {
                     entity,
                     String.class
             );
-            return ResponseEntity.ok(response.getBody());
+            return ResponseEntity.ok(ApiResponse.success(response.getBody(),"",200));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Refund failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Refund failed",500));
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.harsh.AppointDoctor.Services;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
+import com.harsh.AppointDoctor.DTOs.DoctorDTOs.DoctorInfoResponse;
 import com.harsh.AppointDoctor.DTOs.UserInfoResponse;
 import com.harsh.AppointDoctor.Enums.AccountStatus;
 import com.harsh.AppointDoctor.Enums.Role;
@@ -47,38 +49,44 @@ public class AuthService {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
-    public UserInfoResponse getCurrentUser(String email) {
+    public ApiResponse<?> getCurrentUser(String email) {
         Users user = repo.findByEmail(email);
         if (user == null) throw new RuntimeException("User Not Found");
-
-
-        String doctorId = null;
-        String accountStatus = null;
-
-        if (user.getRoles().contains(Role.DOCTOR)) {
-            Doctor doctor = doctorRepo.findByEmail(email);
-            if (doctor != null) {
-                doctorId = doctor.getDoctorId();
-                accountStatus = doctor.getAccountStatus().name();
-            }
-        }
 
         String fullName = user.getFirstName() + " " + user.getLastName();
         String accessToken = jwtService.generateAccessToken(email); // Generate token
 
-        return new UserInfoResponse(
+        if (user.getRoles().contains(Role.DOCTOR)) {
+            Doctor doctor = doctorRepo.findByEmail(email);
+            if (doctor != null) {
+                String doctorId = doctor.getDoctorId();
+                String accountStatus = doctor.getAccountStatus().name();
+                int consultationFees = doctor.getProfessional().getConsultationFees();
+                DoctorInfoResponse doctorInfoResponse = new DoctorInfoResponse(
+                        user.getEmail(),
+                        fullName,
+                        user.getRoles(),
+                        doctorId,
+                        accountStatus,
+                        accessToken,
+                        consultationFees
+                );
+                return ApiResponse.success(doctorInfoResponse,"Data Fetched",200);
+            }
+        }
+
+        UserInfoResponse userInfoResponse =  new UserInfoResponse(
                 user.getEmail(),
                 fullName,
                 user.getRoles(),
-                doctorId,
-                accountStatus,
-                accessToken // Pass token to response
+                accessToken
         );
+        return ApiResponse.success(userInfoResponse,"Data Fetched",200);
     }
 
 
     @Transactional
-    public Users register(Users user) {
+    public void register(Users user) {
         user.setPassword(encoder.encode(user.getPassword()));
         if (user.getRoles() == null) {
             user.setRoles(List.of(Role.USER));
@@ -87,7 +95,7 @@ public class AuthService {
             List<Role> uppercaseRoles = user.getRoles().stream()
                     .map(role -> Role.valueOf(role.name().toUpperCase()))
                     .toList();
-            user.setRoles(uppercaseRoles);
+                user.setRoles(uppercaseRoles);
         }
 
         Users savedUser = repo.save(user);
@@ -114,7 +122,6 @@ public class AuthService {
             userProfile.setEmail(savedUser.getEmail());
             profileRepo.save(userProfile);
         }
-        return savedUser;
     }
 
     public boolean userExistence(String email) {
@@ -122,29 +129,6 @@ public class AuthService {
         return user != null;
     }
 
-//    public LoginResult verify(LoginRequest loginRequest) {
-//        if (loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
-//            throw new IllegalArgumentException("Email and password are required.");
-//        }
-//        Authentication authentication = authenticationManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(
-//                        loginRequest.getEmail(),
-//                        loginRequest.getPassword()
-//                  )
-//        );
-//        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-//        String roles = userDetails.getAuthorities().stream()
-//                .map(GrantedAuthority::getAuthority)
-//                .collect(Collectors.joining(","));
-//
-//        Users userFromDB = repo.findByEmail(loginRequest.getEmail());
-//        if (userFromDB == null) {
-//            throw new UsernameNotFoundException("User not found in database.");
-//        }
-//
-//        String fullName = userFromDB.getFirstName() + " " + userFromDB.getLastName();
-//        return new LoginResult(loginRequest.getEmail(), roles, fullName);
-//    }
 
     public void addOtp(Users user, int otp) {
         Users usersOptional = repo.findByEmail(user.getEmail());
@@ -161,23 +145,21 @@ public class AuthService {
         }
     }
 
-    public ResponseEntity<?> validateOtp(Users user) {
+    public ResponseEntity<ApiResponse<?>> validateOtp(Users user) {
         Users usersOptional = repo.findByEmail(user.getEmail());
         if (usersOptional != null){
-
             if (user.getOtp() == usersOptional.getOtp()){
-                return new ResponseEntity<>("OTP Matched", HttpStatus.OK);
+                return new ResponseEntity<>(ApiResponse.success(null,"OTP Matched",200), HttpStatus.OK);
             } else
-                return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
+                return new ResponseEntity<>(ApiResponse.error("Wrong Otp",417),HttpStatus.EXPECTATION_FAILED);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(ApiResponse.error("Unauthorised user",401),HttpStatus.UNAUTHORIZED);
         }
     }
 
-    public ResponseEntity<?> updatePassword(Users user) {
+    public ResponseEntity<ApiResponse<?>> updatePassword(Users user) {
         Users usersOptional = repo.findByEmail(user.getEmail());
         if (usersOptional != null){
-
             String userFirstName = usersOptional.getFirstName();
             String userLastName = usersOptional.getLastName();
 
@@ -186,27 +168,27 @@ public class AuthService {
             user.setPassword(encoder.encode(user.getPassword()));
             user.setOtp(0);
             repo.save(user);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(ApiResponse.success(null,"Password Updated",200),HttpStatus.OK);
         } else
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
     }
 
-    public ResponseEntity<String> getUserById(String email) {
-        Users userOptional = repo.findByEmail(email);
-        if (userOptional != null){
-            String firstName = userOptional.getFirstName();
-            String lastName = userOptional.getLastName();
-
-            String fullName = firstName +" "+ lastName;
-            return new ResponseEntity<>(fullName,HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-    }
+//    public ResponseEntity<ApiResponse<?>> getUserById(String email) {
+//        Users userOptional = repo.findByEmail(email);
+//        if (userOptional != null){
+//            String firstName = userOptional.getFirstName();
+//            String lastName = userOptional.getLastName();
+//
+//            String fullName = firstName +" "+ lastName;
+//            return new ResponseEntity<>(ApiResponse.success(fullName,),HttpStatus.OK);
+//        } else {
+//            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+//        }
+//    }
     public void changePassword(String email, String oldPassword, String newPassword) {
         Users user = repo.findByEmail(email);
         if (user == null)
-            throw new UsernameNotFoundException("User Not Found");
+            throw new UsernameNotFoundException("Unauthorised User");
 
         if (!encoder.matches(oldPassword, user.getPassword())) {
             throw new IllegalArgumentException("Old password is incorrect");

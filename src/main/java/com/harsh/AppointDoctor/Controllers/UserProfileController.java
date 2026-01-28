@@ -1,5 +1,6 @@
 package com.harsh.AppointDoctor.Controllers;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.UsersProfile;
 import com.harsh.AppointDoctor.Services.DoctorProfileService;
@@ -21,21 +22,21 @@ public class UserProfileController {
     private DoctorProfileService doctorService;
 
     @PutMapping("update-profile")
-    public ResponseEntity<?> updateProfile(@RequestBody UsersProfile profile) {
+    public ResponseEntity<ApiResponse<?>> updateProfile(@RequestBody UsersProfile profile) {
         try {
             ResponseEntity<?> emailValidationResponse = userProfileService.userExistence(profile.getEmail());
 
             if (emailValidationResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
-                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(ApiResponse.error("User not found",404), HttpStatus.NOT_FOUND);
             }
             return userProfileService.updateUserProfile(profile);
         } catch (Exception e) {
-            return new ResponseEntity<>(Map.of("Error updating profile: ", e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(ApiResponse.error("Error updating profile", 500), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @GetMapping("/{email}")
-    public ResponseEntity<?> getUser(@PathVariable String email){
+    public ResponseEntity<ApiResponse<?>> getUser(@PathVariable String email){
         return userProfileService.getUserById(email);
     }
 }

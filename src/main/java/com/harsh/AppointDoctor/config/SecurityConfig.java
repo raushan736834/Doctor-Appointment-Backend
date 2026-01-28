@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -64,12 +65,14 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(request -> request
+                                .requestMatchers(HttpMethod.GET, "/api/slots/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/slots/lock").hasAnyRole("USER","DOCTOR","ADMIN")
                         .requestMatchers("/ws/**","/auth/**","/api/public/**","/document","/api/notifications/**").permitAll()
 //                                 Role-based restrictions
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/user/**","/api/user/**","/api/payment").hasAnyRole("USER", "ADMIN") // both roles can access
-                        .requestMatchers("/appointment/**").hasAnyRole("USER","DOCTOR","ADMIN")
-                        .requestMatchers("/api/doctors/**").hasRole("DOCTOR")
+                        .requestMatchers("/user/**","/api/user/**","/api/payment","/appointment/user/**","/api/ratings/**").hasAnyRole("USER", "ADMIN") // both roles can access
+                        .requestMatchers("/api/doctors/**","/appointment/doctor/**").hasAnyRole("DOCTOR","ADMIN")
+                        .requestMatchers("/appointment/common/**").hasAnyRole("USER","DOCTOR","ADMIN")
                         .anyRequest()
                         .authenticated()
                 ) // Require authentication for all other endpoints

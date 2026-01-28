@@ -1,5 +1,6 @@
 package com.harsh.AppointDoctor.Services;
 
+import com.harsh.AppointDoctor.DTOs.DoctorDTOs.OperatingHoursResponse;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Qualification;
@@ -7,22 +8,20 @@ import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Repo.DoctorOnboardingRepo.DoctorRepo;
 import com.harsh.AppointDoctor.Repo.DoctorProfileRepo;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Service
 public class DoctorProfileService {
 
-    @Autowired
-    private DoctorProfileRepo doctorRepository;
 
-    @Autowired
-    private DoctorRepo doctorRepo;
-
-    @Autowired
-    private SpecialistRepo specialistRepo;
+    private final DoctorProfileRepo doctorRepository;
+    private final DoctorRepo doctorRepo;
+    private final SpecialistRepo specialistRepo;
 
     public DoctorProfile saveDoctor(DoctorProfile doctor) {
         for (Qualification q : doctor.getQualifications()) {
@@ -76,6 +75,10 @@ public class DoctorProfileService {
 
     public List<DoctorProfile> searchDoctorsByCityAndSpecialist(String city, String specialist) {
         return doctorRepository.findBySpecializationAndCityIgnoreCase(specialist,city);
+    }
+
+    public List<OperatingHoursResponse> getOperatingHours(String doctorId) {
+        return doctorRepository.findOperatingHoursByDoctorId(doctorId);
     }
 }
 

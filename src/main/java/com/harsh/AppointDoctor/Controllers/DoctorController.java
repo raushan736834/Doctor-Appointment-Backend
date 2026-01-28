@@ -3,7 +3,7 @@ package com.harsh.AppointDoctor.Controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.DTOs.DoctorDTOs.*;
-import com.harsh.AppointDoctor.DTOs.DoctorOnboardingRequest;
+import com.harsh.AppointDoctor.DTOs.DoctorDTOs.DoctorOnboardingRequest;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.DoctorClinicInfo;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.DoctorEducation;
@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
@@ -29,7 +28,7 @@ public class DoctorController {
     private final DoctorService doctorService;
 
     @PutMapping("/personalDetails")
-    public ResponseEntity<?> addPersonalDetails(
+    public ResponseEntity<ApiResponse<?>> addPersonalDetails(
             @RequestPart("doctor") String doctorJson,
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
             Principal principal) {
@@ -42,33 +41,33 @@ public class DoctorController {
             }
 
             doctorService.saveBasicDetails(doctor, email);
-            return new ResponseEntity<>("Personal Details Successfully Added", HttpStatus.CREATED);
+            return new ResponseEntity<>(ApiResponse.success(null,"Personal Details Successfully Added",201), HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(ApiResponse.error(e.getMessage(),401), HttpStatus.UNAUTHORIZED);
         }
     }
 
 
     @PutMapping("/professional")
-    public ResponseEntity<?> addProfessionalDetails(@RequestBody DoctorProfessional professional,Principal principal) {
+    public ResponseEntity<ApiResponse<?>> addProfessionalDetails(@RequestBody DoctorProfessional professional,Principal principal) {
         try {
             String email = principal.getName();
             doctorService.addProfessionalDetails(professional,email);
-            return new ResponseEntity<>("Professional Details Added",HttpStatus.CREATED);
+            return new ResponseEntity<>(ApiResponse.success(null, "Professional Details Added",201),HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(ApiResponse.error(e.getMessage(),401), HttpStatus.UNAUTHORIZED);
         }
     }
 
     // Step 3: Add availability slots
     @PutMapping("/education")
-    public ResponseEntity<?> addEducationalDetails(@RequestBody List<DoctorEducation> educations,Principal principal) {
+    public ResponseEntity<ApiResponse<?>> addEducationalDetails(@RequestBody List<DoctorEducation> educations,Principal principal) {
         try {
             String email = principal.getName();
             doctorService.addEducationalDetails(educations,email);
-            return new ResponseEntity<>("Educational Details Added",HttpStatus.CREATED);
+            return new ResponseEntity<>(ApiResponse.success(null,"Educational Details Added",201),HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(ApiResponse.error(e.getMessage(),401), HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -116,13 +115,13 @@ public class DoctorController {
 
 
     @GetMapping("/review")
-    public ResponseEntity<?> reviewStage(Principal principal){
+    public ResponseEntity<ApiResponse<?>> reviewStage(Principal principal){
         try{
             String email = principal.getName();
             doctorService.reviewAccount(email);
-            return new ResponseEntity<>("Successfully OnBoarding", HttpStatus.OK);
+            return new ResponseEntity<>(ApiResponse.success(null,"Successfully OnBoarding",200), HttpStatus.OK);
         } catch (Exception e){
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(ApiResponse.error(e.getMessage(),500), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -139,9 +138,9 @@ public class DoctorController {
     }
 
     @PostMapping("/onboarding")
-    public ResponseEntity<?> saveOnboarding(@RequestBody DoctorOnboardingRequest request) {
+    public ResponseEntity<ApiResponse<?>> saveOnboarding(@RequestBody DoctorOnboardingRequest request) {
         Doctor saved = doctorService.saveDoctorOnboarding(request);
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(ApiResponse.success(saved,"",200));
     }
 
     @PostMapping("/onboarding/bulk")

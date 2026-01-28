@@ -1,4 +1,7 @@
 package com.harsh.AppointDoctor.Enums;
 
-public class SlotStatus {
+public enum SlotStatus {
+    AVAILABLE,
+    BOOKED
 }
+

@@ -6,6 +6,7 @@ import lombok.Data;
 
 @Data
 public class AppointmentBookingRequest {
+    private String slotId;
     private AppointmentBooking formData;
     private Payment payment;
 }

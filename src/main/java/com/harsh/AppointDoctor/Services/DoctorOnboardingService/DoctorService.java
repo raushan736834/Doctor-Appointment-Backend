@@ -3,7 +3,7 @@ package com.harsh.AppointDoctor.Services.DoctorOnboardingService;
 
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.DTOs.DoctorDTOs.*;
-import com.harsh.AppointDoctor.DTOs.DoctorOnboardingRequest;
+import com.harsh.AppointDoctor.DTOs.DoctorDTOs.DoctorOnboardingRequest;
 import com.harsh.AppointDoctor.Enums.AccountStatus;
 import com.harsh.AppointDoctor.Enums.Days;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.*;

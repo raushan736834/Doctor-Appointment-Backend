@@ -34,6 +34,12 @@ public class Doctor {
     @Enumerated(EnumType.STRING)
     private AccountStatus accountStatus;
 
+    @Column(nullable = false)
+    private double averageRating = 0.0;
+
+    @Column(nullable = false)
+    private int totalRatings = 0;
+
     @OneToOne(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private DoctorProfessional professional;

@@ -1,5 +1,6 @@
 package com.harsh.AppointDoctor.Controllers;
 
+import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
@@ -19,13 +20,13 @@ public class SpecialistController {
     private DoctorProfileService doctorService;
 
     @GetMapping("/{email}")
-    public ResponseEntity<?> fetchDoctorProfile(@PathVariable String email) {
+    public ResponseEntity<ApiResponse<?>> fetchDoctorProfile(@PathVariable String email) {
         System.out.println(email);
         DoctorProfile doctors = doctorService.getDoctorData(email);
         if (doctors == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(doctors, HttpStatus.OK);
+        return new ResponseEntity<>(ApiResponse.success(doctors,"",200), HttpStatus.OK);
     }
 
 

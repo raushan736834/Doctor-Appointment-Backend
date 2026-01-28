@@ -36,19 +36,4 @@ public class StompNotificationService {
         }
     }
 
-    /**
-     * Checks if a user is currently connected to the WebSocket.
-     * Note: STOMP doesn't provide an easy way to check this, so we'll always return
-     * true.
-     * The message will be queued if the user is offline (depending on broker
-     * configuration).
-     *
-     * @param userEmail The email address of the user
-     * @return Always returns true (messages will be queued if user is offline)
-     */
-    public boolean isUserOnline(String userEmail) {
-        // STOMP with SimpleBroker doesn't maintain session state like Socket.IO
-        // Messages will be delivered when user connects and subscribes
-        return true;
-    }
 }

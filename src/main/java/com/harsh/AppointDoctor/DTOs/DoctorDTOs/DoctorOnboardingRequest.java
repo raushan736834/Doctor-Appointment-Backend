@@ -1,4 +1,4 @@
-package com.harsh.AppointDoctor.DTOs;
+package com.harsh.AppointDoctor.DTOs.DoctorDTOs;
 
 import lombok.Data;
 import java.util.List;

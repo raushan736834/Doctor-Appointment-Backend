@@ -1,4 +1,9 @@
 package com.harsh.AppointDoctor.config;
 
-public class RetryConfig {
-}
+import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.annotation.EnableRetry;
+
+@Configuration
+@EnableRetry
+public class RetryConfig {}
+

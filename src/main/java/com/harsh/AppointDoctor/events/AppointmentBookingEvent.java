@@ -1,4 +1,16 @@
 package com.harsh.AppointDoctor.events;
 
-public class AppointmentBookingEvent {
-}
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.UUID;
+
+public record AppointmentBookingEvent (
+    String userEmail,
+    String doctorEmail,
+    UUID appointmentId,
+    String patientName,
+    String doctorName,
+    LocalDate appointmentDate,
+    LocalTime appointmentTime,
+    String specialization
+) {}

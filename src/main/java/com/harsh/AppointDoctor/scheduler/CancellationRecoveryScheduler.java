@@ -3,7 +3,8 @@ package com.harsh.AppointDoctor.scheduler;
 import com.harsh.AppointDoctor.Enums.AppointmentStatus;
 import com.harsh.AppointDoctor.Models.AppointmentBooking;
 import com.harsh.AppointDoctor.Repo.AppointmentBookingRepo;
-import com.harsh.AppointDoctor.Services.AppointmentBookingService;
+import com.harsh.AppointDoctor.Services.CommonAppointmentService;
+import com.harsh.AppointDoctor.Services.UserAppointmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,9 +18,9 @@ import java.util.List;
 public class CancellationRecoveryScheduler {
 
     private final AppointmentBookingRepo appointmentRepo;
-    private final AppointmentBookingService appointmentService;
+    private final CommonAppointmentService appointmentService;
 
-    @Scheduled(fixedRate = 600000) // every 10 mins
+    @Scheduled(fixedRate = 6000000)
     public void fixPendingCancellations() {
         log.info("Running cancellation recovery job...");
 
@@ -28,7 +29,7 @@ public class CancellationRecoveryScheduler {
 
         for (AppointmentBooking appointment : pending) {
             try {
-                appointmentService.cancelAppointmentOnly(appointment,appointment.getCancelledBy(),appointment.getReason());
+                appointmentService.performCancellation(appointment);
                 log.info("Recovered cancellation for appointment: {}", appointment.getAppointmentId());
             } catch (Exception e) {
                 log.error("Retry failed for appointment {}", appointment.getAppointmentId(), e);

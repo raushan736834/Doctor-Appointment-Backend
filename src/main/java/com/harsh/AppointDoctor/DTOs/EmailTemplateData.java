@@ -50,7 +50,7 @@ public class EmailTemplateData {
 
     private void generateUrls() {
         String baseUrl = "https://clinic.com";
-        String appointmentId = appointment.getAppointmentId();
+        String appointmentId = appointment.getAppointmentId().toString();
         this.confirmUrl = baseUrl + "/confirm/" + appointmentId;
         this.rescheduleUrl = baseUrl + "/reschedule/" + appointmentId;
         this.cancelUrl = baseUrl + "/cancel/" + appointmentId;

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -49,7 +50,7 @@ public class NotificationService {
     }
 
     public void sendAppointmentRescheduledNotification(String userEmail, String appointmentId,
-            String doctorName, String oldDate, String newDate) {
+                                                       String doctorName, LocalDate oldDate, LocalDate newDate) {
         String title = "Appointment Rescheduled";
         String message = String.format("Your appointment with Dr. %s has been rescheduled from %s to %s.",
                 doctorName, oldDate, newDate);
@@ -65,7 +66,7 @@ public class NotificationService {
     }
 
     public void sendAppointmentRescheduledNotificationToDoctor(String doctorEmail, String appointmentId,
-            String patientName, String oldDate, String newDate) {
+            String patientName, LocalDate oldDate, LocalDate newDate) {
         String title = "Appointment Rescheduled";
         String message = String.format("Appointment with patient %s has been rescheduled from %s to %s.",
                 patientName, oldDate, newDate);
@@ -94,7 +95,7 @@ public class NotificationService {
     // Combined method to send rescheduling notifications to both parties
     public void sendAppointmentRescheduledNotifications(String patientEmail, String doctorEmail,
             String appointmentId, String doctorName,
-            String patientName, String oldDate, String newDate) {
+            String patientName, LocalDate oldDate, LocalDate newDate) {
         // Send notification to patient
         sendAppointmentRescheduledNotification(patientEmail, appointmentId, doctorName, oldDate, newDate);
 
@@ -122,4 +123,13 @@ public class NotificationService {
     public void markAllAsRead(String userEmail) {
         notificationRepository.markAllAsReadByUserEmail(userEmail);
     }
+
+    public void sendNotification(String email, String title, String message, AppointmentStatus status, String appointmentId) {
+        if (email != null) {
+            Notification notification = new Notification(email, title, message, status, appointmentId);
+            notificationRepository.save(notification);
+            stompNotificationService.sendNotificationToUser(email, notification);
+        }
+    }
+
 }
