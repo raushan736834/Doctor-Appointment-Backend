@@ -17,7 +17,6 @@ public class DoctorDocument {
 
     @Lob
     @Column(name = "file_data", columnDefinition = "LONGBLOB") // for MySQL
-//    @Column(name = "file_data", columnDefinition = "varbinary(max)") // for MySQL
     private byte[] fileData;
 
     @ManyToOne

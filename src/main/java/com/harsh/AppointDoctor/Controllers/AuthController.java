@@ -2,6 +2,7 @@ package com.harsh.AppointDoctor.Controllers;
 
 import com.harsh.AppointDoctor.DTOs.*;
 import com.harsh.AppointDoctor.DTOs.DoctorDTOs.DoctorLoginResponse;
+import com.harsh.AppointDoctor.Enums.AccountStatus;
 import com.harsh.AppointDoctor.Enums.Role;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.Users;
@@ -15,6 +16,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +31,7 @@ import static com.harsh.AppointDoctor.Utility.OtpGenerator.generateSixDigitOtp;
 @CrossOrigin
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final AuthService service;
@@ -70,6 +73,7 @@ public class AuthController {
             ApiResponse<?> userInfo = service.getCurrentUser(email);
             return ResponseEntity.ok(userInfo);
         } catch (Exception e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Token validation failed",401));
         }
@@ -88,6 +92,7 @@ public class AuthController {
                     "Thank you for registering!");
             return new ResponseEntity<>(ApiResponse.success(null,"Account Created",200), HttpStatus.CREATED);
         } catch (Exception e) {
+            log.error(e.getMessage());
             return new ResponseEntity<>(ApiResponse.error("Error occurred during creating account",500),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -127,17 +132,31 @@ public class AuthController {
                 }
                 if (user.getRoles().contains(Role.DOCTOR)) {
                     Doctor doctor = doctorRepo.findByEmail(loginRequest.getEmail());
-                    doctorLoginResponse = new DoctorLoginResponse(
-                            user.getFirstName() + " " + user.getLastName(),
-                            loginRequest.getEmail(),
-                            doctor.getDoctorId(),
-                            accessToken,
-                            user.getRoles(),
-                            doctor.getAccountStatus(),
-                            "Login successful",
-                            refreshToken,
-                            doctor.getProfessional().getConsultationFees()
-                    );
+                    if(doctor.getAccountStatus() == AccountStatus.COMPLETE){
+                        doctorLoginResponse = new DoctorLoginResponse(
+                                user.getFirstName() + " " + user.getLastName(),
+                                loginRequest.getEmail(),
+                                doctor.getDoctorId(),
+                                accessToken,
+                                user.getRoles(),
+                                doctor.getAccountStatus(),
+                                "Login successful",
+                                refreshToken,
+                                doctor.getProfessional().getConsultationFees()
+                        );
+                    } else {
+                        doctorLoginResponse = new DoctorLoginResponse(
+                                user.getFirstName() + " " + user.getLastName(),
+                                loginRequest.getEmail(),
+                                doctor.getDoctorId(),
+                                accessToken,
+                                user.getRoles(),
+                                doctor.getAccountStatus(),
+                                "Login successful",
+                                refreshToken,
+                                0
+                        );
+                    }
                     return ResponseEntity.ok(ApiResponse.success(doctorLoginResponse,"Login Successful",20));
                 }
                 LoginResponse userLoginResponse = null;
@@ -156,6 +175,7 @@ public class AuthController {
                         .body(ApiResponse.error("Invalid credentials",401));
             }
         } catch (AuthenticationException e) {
+            log.error(e.getMessage(),e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Invalid credentials",401));
         }

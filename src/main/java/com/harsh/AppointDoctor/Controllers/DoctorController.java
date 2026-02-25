@@ -143,11 +143,7 @@ public class DoctorController {
         return ResponseEntity.ok(ApiResponse.success(saved,"",200));
     }
 
-    @PostMapping("/onboarding/bulk")
-    public ResponseEntity<?> saveBulk(@RequestBody List<DoctorOnboardingRequest> requests) {
-        doctorService.saveDoctorList(requests);
-        return ResponseEntity.ok("Bulk doctor save completed successfully");
-    }
+
 
     @GetMapping("/getDoctorDetails")
     public ResponseEntity<ApiResponse<DoctorDTO>> getDoctorDetails(Principal principal){

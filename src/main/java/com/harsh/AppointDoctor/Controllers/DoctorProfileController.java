@@ -4,7 +4,7 @@ import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Services.DoctorProfileService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +13,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
+@RequiredArgsConstructor
 public class DoctorProfileController {
-    @Autowired
+
     private DoctorProfileService doctorService;
 
     @GetMapping("/{email}")

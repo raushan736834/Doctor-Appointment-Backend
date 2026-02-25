@@ -11,9 +11,9 @@ public class OperationHours {
     @Enumerated(EnumType.STRING)
     private Days days;           // e.g., MONDAY, TUESDAY, etc.
 
-//    @Column(name = "open_time")
+    @Column(name = "open_time")
     private String open;
-//    @Column(name = "close_time")// opening time (e.g., "09:00 AM")
+    @Column(name = "close_time")// opening time (e.g., "09:00 AM")
     private String close;        // closing time (e.g., "05:00 PM")
 
     @JsonProperty("isClosedToday")

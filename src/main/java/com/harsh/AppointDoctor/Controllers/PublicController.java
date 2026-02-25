@@ -2,22 +2,24 @@ package com.harsh.AppointDoctor.Controllers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
+import com.harsh.AppointDoctor.DTOs.DoctorDTOs.DoctorOnboardingRequest;
 import com.harsh.AppointDoctor.DTOs.DoctorDTOs.OperatingHoursResponse;
 import com.harsh.AppointDoctor.Models.ContactUs;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
+import com.harsh.AppointDoctor.Services.DoctorOnboardingService.DoctorService;
 import com.harsh.AppointDoctor.Services.UserAppointmentService;
 import com.harsh.AppointDoctor.Services.ContactUsService;
 import com.harsh.AppointDoctor.Services.DoctorProfileService;
 import com.harsh.AppointDoctor.Services.RedisService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.List;
 @CrossOrigin
 @RequiredArgsConstructor
 @RequestMapping("/api/public/")
+@Slf4j
 public class PublicController {
 
     private final UserAppointmentService appointmentService;
@@ -33,20 +36,34 @@ public class PublicController {
     private final DoctorProfileService doctorService;
     private final ContactUsService contactUsService;
     private final SpecialistRepo repo;
+    private final DoctorService doctorServices;
+
 
     @GetMapping("/getSpecialist")
     public ResponseEntity<ApiResponse<?>> getAllSpecialist() {
-        List<Specialist> specialists =
-                redisService.get("all_specialist", new TypeReference<List<Specialist>>() {});
 
-        if (specialists != null) {
-            return ResponseEntity.ok(ApiResponse.success(specialists,"",200));
+        try {
+            List<Specialist> specialists =
+                    redisService.get("all_specialist", new TypeReference<List<Specialist>>() {});
+
+            if (specialists != null) {
+                return ResponseEntity.ok(ApiResponse.success(specialists, "", 200));
+            }
+        } catch (Exception e) {
+            log.error("Redis failed: {}", e.getMessage());
         }
 
         List<Specialist> data = repo.findAllByOrderBySpecialistAsc();
-        redisService.set("all_specialist", data, 300L);
-        return ResponseEntity.ok(ApiResponse.success(data,"",200));
+
+        try {
+            redisService.set("all_specialist", data, 300L);
+        } catch (Exception e) {
+            log.error("Redis set failed: {}", e.getMessage());
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(data, "", 200));
     }
+
 
 
 //    @GetMapping("/search")
@@ -125,5 +142,11 @@ public class PublicController {
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @PostMapping("/onboarding/bulk")
+    public ResponseEntity<?> saveBulk(@RequestBody List<DoctorOnboardingRequest> requests) {
+        doctorServices.saveDoctorList(requests);
+        return ResponseEntity.ok("Bulk doctor save completed successfully");
     }
 }

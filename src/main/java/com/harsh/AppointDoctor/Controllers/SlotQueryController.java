@@ -2,8 +2,6 @@ package com.harsh.AppointDoctor.Controllers;
 
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.DTOs.AppointmentSlotResponse;
-import com.harsh.AppointDoctor.Models.AppointmentSlot;
-import com.harsh.AppointDoctor.Repo.AppointmentSlotRepo;
 import com.harsh.AppointDoctor.Services.SlotQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

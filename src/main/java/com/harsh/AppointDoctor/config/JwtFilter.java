@@ -37,8 +37,17 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Skip JWT validation for refresh endpoint
-        if (request.getRequestURI().equals("/auth/refresh-token")) {
+
+        String path = request.getRequestURI();
+
+        // Skip JWT validation for public endpoints
+        if (path.startsWith("/api/public") ||
+                path.startsWith("/auth") ||
+                path.startsWith("/ws") ||
+                path.startsWith("/api/slots")
+
+        ) {
+
             filterChain.doFilter(request, response);
             return;
         }

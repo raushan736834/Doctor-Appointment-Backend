@@ -16,9 +16,7 @@ public class DoctorClinicInfo {
     private Long id;
     private String clinicName;
     private String clinicType;
-    @Column(unique = true)
     private String clinicPhone;
-    @Column(unique = true)
     private String clinicEmail;
     private String establishedYear;
     private String clinicAddress;
