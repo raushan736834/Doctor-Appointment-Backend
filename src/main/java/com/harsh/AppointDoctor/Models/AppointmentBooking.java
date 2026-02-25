@@ -16,7 +16,7 @@ import java.util.UUID;
 public class AppointmentBooking {
 
     @Id
-    @Column(columnDefinition = "BINARY(16)")
+    @Column(columnDefinition = "uuid")
     private UUID appointmentId;
 
     @PrePersist
