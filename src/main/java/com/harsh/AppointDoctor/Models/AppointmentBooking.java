@@ -12,6 +12,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "appointment_booking")
 public class AppointmentBooking {
 
     @Id

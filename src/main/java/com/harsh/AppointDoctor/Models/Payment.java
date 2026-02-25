@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Data
+@Table(name="payment")
 public class Payment {
     @Id
     private String receiptId;
