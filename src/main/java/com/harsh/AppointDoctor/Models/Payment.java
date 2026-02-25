@@ -26,6 +26,6 @@ public class Payment {
 
     @OneToOne
     @JsonBackReference
-    @JoinColumn(name = "appointment_id", referencedColumnName = "appointmentId",columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "appointment_id")
     private AppointmentBooking appointmentBooking;
 }
