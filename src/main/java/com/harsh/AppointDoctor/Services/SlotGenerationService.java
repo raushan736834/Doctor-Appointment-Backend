@@ -132,6 +132,10 @@ public class SlotGenerationService {
         DoctorClinicInfo clinicInfo = doctor.getClinicInfos();
         if (clinicInfo == null) return;
 
+        if (clinicInfo.getConsultationDuration() == null || clinicInfo.getConsultationDuration().isBlank()) {
+            throw new IllegalArgumentException("Slot duration is missing");
+        }
+
         int durationMinutes =
                 Integer.parseInt(clinicInfo.getConsultationDuration());
 
