@@ -16,7 +16,7 @@ public class DoctorDocument {
     private String fileName;
 
     @Lob
-    @Column(name = "file_data", columnDefinition = "LONGBLOB") // for MySQL
+    @Column(name = "file_data")
     private byte[] fileData;
 
     @ManyToOne

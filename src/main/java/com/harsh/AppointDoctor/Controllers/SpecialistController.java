@@ -5,6 +5,7 @@ import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Specialist;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
 import com.harsh.AppointDoctor.Services.DoctorProfileService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +16,10 @@ import java.util.List;
 @RestController
 @CrossOrigin
 @RequestMapping("/api/doctor")
+@RequiredArgsConstructor
 public class SpecialistController {
-    @Autowired
-    private DoctorProfileService doctorService;
+
+    private final DoctorProfileService doctorService;
 
     @GetMapping("/{email}")
     public ResponseEntity<ApiResponse<?>> fetchDoctorProfile(@PathVariable String email) {

@@ -16,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DoctorProfileController {
 
-    private DoctorProfileService doctorService;
+    private final DoctorProfileService doctorService;
 
     @GetMapping("/{email}")
     public ResponseEntity<ApiResponse<?>> fetchDoctorProfile(@PathVariable String email) {
