@@ -2,7 +2,7 @@ package com.harsh.AppointDoctor.Models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
+import java.time.ZoneId;
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,4 +24,17 @@ public class UserLocation {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @PrePersist
+    protected void onCreate() {
+        updatedAt = LocalDateTime.now(
+                ZoneId.of("Asia/Kolkata")
+        );
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now(
+                ZoneId.of("Asia/Kolkata")
+        );
+    }
 }
