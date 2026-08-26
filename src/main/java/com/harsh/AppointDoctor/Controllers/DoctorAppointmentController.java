@@ -84,6 +84,4 @@ public class DoctorAppointmentController {
             throw new RuntimeException(e.getMessage());
         }
     }
-
-
 }
