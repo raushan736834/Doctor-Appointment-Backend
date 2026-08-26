@@ -72,7 +72,7 @@ public class SlotGenerationService {
         DayOfWeek dayOfWeek = date.getDayOfWeek();
 
         for (OperationHours oh : clinicInfo.getOperatingHours()) {
-
+            log.info(String.valueOf(oh));
             if (oh.getIsClosedToday() != null && oh.getIsClosedToday()) {
                 continue;
             }

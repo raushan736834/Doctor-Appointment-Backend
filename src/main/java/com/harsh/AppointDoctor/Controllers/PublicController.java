@@ -4,23 +4,25 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.harsh.AppointDoctor.DTOs.ApiResponse;
 import com.harsh.AppointDoctor.DTOs.DoctorDTOs.DoctorOnboardingRequest;
 import com.harsh.AppointDoctor.DTOs.DoctorDTOs.OperatingHoursResponse;
+import com.harsh.AppointDoctor.DTOs.NearbyDoctorRequest;
 import com.harsh.AppointDoctor.Models.ContactUs;
 import com.harsh.AppointDoctor.Models.DoctorOnboarding.Doctor;
 import com.harsh.AppointDoctor.Models.DoctorProfile;
 import com.harsh.AppointDoctor.Models.Specialist;
+import com.harsh.AppointDoctor.Models.UserLocation;
 import com.harsh.AppointDoctor.Repo.SpecialistRepo;
+import com.harsh.AppointDoctor.Repo.UserLocationRepo;
+import com.harsh.AppointDoctor.Services.*;
 import com.harsh.AppointDoctor.Services.DoctorOnboardingService.DoctorService;
-import com.harsh.AppointDoctor.Services.UserAppointmentService;
-import com.harsh.AppointDoctor.Services.ContactUsService;
-import com.harsh.AppointDoctor.Services.DoctorProfileService;
-import com.harsh.AppointDoctor.Services.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -37,6 +39,8 @@ public class PublicController {
     private final ContactUsService contactUsService;
     private final SpecialistRepo repo;
     private final DoctorService doctorServices;
+    private final UserLocationRepo userLocationRepo;
+    private final LocationService locationService;
 
 
     @GetMapping("/getSpecialist")
@@ -66,11 +70,21 @@ public class PublicController {
 
 
 
-//    @GetMapping("/search")
-//    public ResponseEntity<List<DoctorProfile>> getDoctorByKeyword(@RequestParam String keyword){
-//        List<DoctorProfile> doctors = doctorService.searchDoctors(keyword);
-//        return ResponseEntity.ok(doctors);
-//    }
+    @PostMapping("/nearby")
+    public ResponseEntity<?> findNearbyDoctors(@RequestBody NearbyDoctorRequest request) {
+
+        UserLocation location = new UserLocation();
+        location.setLatitude(request.getLatitude());
+        location.setLongitude(request.getLongitude());
+        location.setUpdatedAt(LocalDateTime.now());
+
+        userLocationRepo.save(location);
+
+        // Now search doctors near this location
+        String city = locationService.reverseGeocode(request.getLatitude(), request.getLongitude());
+        List<DoctorProfile> doctors = doctorService.searchDoctorsByCityAndSpecialist(city, request.getSpecialist());
+        return ResponseEntity.ok(ApiResponse.success(doctors, "", 200));
+    }
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<?>> getDoctorDetails(@RequestParam String keyword){

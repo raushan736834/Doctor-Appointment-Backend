@@ -7,6 +7,7 @@ import com.harsh.AppointDoctor.Models.AppointmentSlot;
 import com.harsh.AppointDoctor.Repo.AppointmentSlotRepo;
 import com.harsh.AppointDoctor.Services.SlotLockService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/slots")
 @RequiredArgsConstructor
+@Slf4j
 public class SlotController {
 
     private final AppointmentSlotRepo slotRepo;
@@ -29,6 +31,8 @@ public class SlotController {
             @RequestBody SlotLockRequest req,
             Authentication authentication
     ) {
+        log.info(String.valueOf(authentication));
+        log.info(String.valueOf(authentication.getAuthorities()));
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("User not authenticated",401));

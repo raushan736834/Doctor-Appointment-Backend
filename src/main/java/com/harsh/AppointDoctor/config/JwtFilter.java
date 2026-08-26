@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+@Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
@@ -37,14 +39,12 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-
         String path = request.getRequestURI();
 
         // Skip JWT validation for public endpoints
         if (path.startsWith("/api/public") ||
                 path.startsWith("/auth") ||
-                path.startsWith("/ws") ||
-                path.startsWith("/api/slots")
+                path.startsWith("/ws")
 
         ) {
 
